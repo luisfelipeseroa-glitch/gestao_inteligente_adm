@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UPA Rocinha - Base de relatórios mensais de manutenção",
+  "type": "object",
+  "required": ["schemaVersion", "reports"],
+  "properties": {
+    "schemaVersion": {"const": "1.0"},
+    "exportedAt": {"type": "string"},
+    "reports": {"type": "array", "items": {"$ref": "#/$defs/report"}}
+  },
+  "$defs": {
+    "record": {"type": "object", "additionalProperties": {"type": "string"}},
+    "report": {
+      "type": "object",
+      "required": ["id", "period", "company", "interventions", "preventives", "inspections", "pending", "environment", "documents"],
+      "properties": {
+        "id": {"type": "string"}, "schemaVersion": {"const": "1.0"}, "period": {"type": "string"}, "company": {"type": "string"},
+        "interventions": {"type": "array", "items": {"$ref": "#/$defs/record"}},
+        "preventives": {"type": "array", "items": {"$ref": "#/$defs/record"}},
+        "inspections": {"type": "array", "items": {"$ref": "#/$defs/record"}},
+        "pending": {"type": "array", "items": {"$ref": "#/$defs/record"}},
+        "environment": {"type": "array", "items": {"$ref": "#/$defs/record"}},
+        "documents": {"type": "array", "items": {"$ref": "#/$defs/record"}}
+      }, "additionalProperties": {"type": "string"}
+    }
+  }
+}

@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-mod="fluxo">
+<head>
+<meta charset="utf-8"><script src="../embed.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f4c81">
+<title>UPA Fluxo – Gestão da Unidade</title>
+<style>
+:root{--bg:#f3f5f9;--card:#fff;--tx:#14213d;--mut:#667085;--bd:#e3e8ef;--pri:#0f4c81;--pri2:#1d6fb8;--grn:#12805c;--grnb:#dcf5ea;--amb:#a15c00;--ambb:#fff0d1;--red:#b42318;--redb:#fde4e1;--yel:#6b6b00;--yelb:#f7f5c9;--gry:#475467;--gryb:#eaecf0}
+@media(prefers-color-scheme:dark){:root{--bg:#0b1220;--card:#131c2e;--tx:#e8edf6;--mut:#93a0b8;--bd:#25324b;--pri:#5aa9ee;--pri2:#2f80c9;--grn:#5fdca9;--grnb:#0f3a2c;--amb:#ffc46b;--ambb:#43310b;--red:#ff8f85;--redb:#4a1814;--yel:#e6e37a;--yelb:#3b3a0c;--gry:#c3cbd9;--gryb:#25324b}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:84px}
+header{position:sticky;top:0;z-index:20;background:var(--pri);color:#fff;display:flex;align-items:center;gap:10px;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top))}
+header h1{font-size:17px;margin:0;flex:1;line-height:1.15}header h1 small{display:block;font-weight:400;opacity:.8;font-size:12px}
+header button{background:rgba(255,255,255,.18);border:0;color:#fff;border-radius:10px;padding:8px 11px;font-size:16px}
+#sync{font-size:11px;opacity:.85}
+main{max-width:900px;margin:0 auto;padding:12px}
+nav#tabs{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--bd);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20}
+nav#tabs button{flex:1;border:0;background:none;color:var(--mut);padding:8px 2px 7px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:1px}
+nav#tabs button span{font-size:20px}nav#tabs button.on{color:var(--pri);font-weight:700}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px}
+@media(min-width:640px){.grid{grid-template-columns:repeat(4,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;text-align:left;color:var(--tx);font:inherit}
+.kpi b{display:block;font-size:26px;line-height:1.1}.kpi small{color:var(--mut)}
+.kpi.red b{color:var(--red)}.kpi.amb b{color:var(--amb)}.kpi.grn b{color:var(--grn)}
+h2{font-size:16px;margin:14px 2px 8px}
+.row{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;margin-bottom:7px;cursor:pointer}
+.row .rt{flex:1;min-width:0}.row b{display:block;overflow-wrap:anywhere}.row small{color:var(--mut);display:block}
+.chip{display:inline-block;border-radius:99px;padding:3px 9px;font-size:12px;font-weight:600;white-space:nowrap}
+.chip.grn{background:var(--grnb);color:var(--grn)}.chip.amb{background:var(--ambb);color:var(--amb)}.chip.red{background:var(--redb);color:var(--red)}.chip.yel{background:var(--yelb);color:var(--yel)}.chip.gry{background:var(--gryb);color:var(--gry)}
+.ck{border:1px solid var(--bd);background:var(--bg);color:var(--grn);border-radius:10px;width:38px;height:38px;font-size:18px}
+.btn{border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:600;background:var(--pri);color:#fff}
+.btn.sec{background:var(--gryb);color:var(--tx)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.seg{display:flex;background:var(--gryb);border-radius:12px;padding:3px;margin-bottom:10px}
+.seg button{flex:1;border:0;background:none;color:var(--mut);padding:8px;border-radius:9px;font:inherit;font-weight:600}.seg button.on{background:var(--card);color:var(--tx);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.chips{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px}.chips button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:6px 12px;font:inherit;white-space:nowrap}.chips button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.alert{border-radius:12px;padding:11px 13px;margin-bottom:10px;background:var(--redb);color:var(--red);font-weight:600}
+.pb{height:8px;background:var(--gryb);border-radius:9px;overflow:hidden;margin-top:6px}.pb i{display:block;height:100%;background:var(--grn)}.pb i.m{background:var(--amb)}.pb i.l{background:var(--red)}
+details{background:var(--card);border:1px solid var(--bd);border-radius:14px;margin-bottom:10px}
+details>summary{padding:12px;cursor:pointer;list-style:none}details>summary::-webkit-details-marker{display:none}
+details .in{padding:0 10px 4px}
+.empty{color:var(--mut);text-align:center;padding:22px 10px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:640px){.ov{align-items:center}}
+.md{background:var(--card);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+@media(min-width:640px){.md{border-radius:18px}}
+.md h3{margin:0 0 10px}
+label{display:block;font-size:13px;color:var(--mut);margin-bottom:9px}
+input,select,textarea{display:block;width:100%;margin-top:4px;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
+input[type=radio]{display:inline;width:auto;margin:0 4px 0 0}
+.bt{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.b1,.b2,.bd{border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:600}.b1{background:var(--pri);color:#fff}.b2{background:var(--gryb);color:var(--tx)}.bd{background:var(--redb);color:var(--red);margin-right:auto}
+.ci{border-top:1px solid var(--bd);padding:9px 0}.tri{display:flex;gap:8px;margin-top:6px}.tri label{margin:0;flex:1;text-align:center;border:1px solid var(--bd);border-radius:9px;padding:8px 4px;color:var(--tx)}.tri label.nc{color:var(--red)}
+.tri label:has(input:checked){background:var(--grnb);border-color:var(--grn)}.tri label.nc:has(input:checked){background:var(--redb);border-color:var(--red)}
+.hist{font-size:13px;color:var(--mut);background:var(--bg);border-radius:10px;padding:8px 10px;margin-bottom:9px;max-height:130px;overflow:auto}
+.login{max-width:380px;margin:12vh auto 0}
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#101828;color:#fff;border-radius:12px;padding:10px 16px;z-index:99;display:none;max-width:90%}
+#print{display:none}
+@media print{body.printing header,body.printing main,body.printing nav,body.printing .ov{display:none!important}body.printing #print{display:block;color:#000;background:#fff;padding:8px}#print table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px}#print td,#print th{border:1px solid #999;padding:4px 6px;text-align:left}#print h1{font-size:18px}#print h2{font-size:14px;margin:12px 0 4px}body{background:#fff;padding:0}}
+</style>
+<link rel="stylesheet" href="../embed.css"></head>
+<body>
+<header>
+  <h1>UPA Fluxo<small>Gestão da Unidade · UPA Rocinha</small></h1>
+  <span id="sync"></span>
+  <button data-a="config" aria-label="Configurações">⚙️</button>
+</header>
+<main id="app"></main>
+<nav id="tabs"></nav>
+<div id="print"></div>
+<div id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ================= Utilitários ================= */
+const $=(s,e=document)=>e.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c=='x'?r:(r&3|8)).toString(16)});
+const pad=n=>String(n).padStart(2,'0');
+const hoje=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const agora=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())};
+const diasAte=s=>{if(!s)return null;return Math.round((new Date(s+'T00:00:00')-new Date(hoje()+'T00:00:00'))/864e5)};
+const fmt=s=>s?s.split('-').reverse().join('/'):'—';
+const fmtMes=s=>s?s.split('-').reverse().join('/'):'—';
+const addMeses=(s,n)=>{const d=new Date(s+'T00:00:00');d.setMonth(d.getMonth()+n);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const addDias=(s,n)=>{const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',3200)}
+const chip=(t,c)=>`<span class="chip ${c}">${esc(t)}</span>`;
+const bdg=d=>d==null?'':d<0?chip(`Vencido ${-d}d`,'red'):d===0?chip('Hoje','red'):d<=7?chip(`${d}d`,'amb'):d<=30?chip(`${d}d`,'yel'):chip(`${d}d`,'grn');
+const row=(a,id,t,sub,right)=>`<div class="row" data-a="${a}" data-id="${esc(id)}"><div class="rt"><b>${esc(t)}</b><small>${sub||''}</small></div>${right||''}</div>`;
+const empty=t=>`<div class="empty">${t}</div>`;
+const pb=p=>`<div class="pb"><i class="${p>=80?'':p>=50?'m':'l'}" style="width:${p||0}%"></i></div>`;
+
+/* ================= Dados (local + Supabase) ================= */
+const LS='upafluxo_dados_v1';
+const COLS=['fisc','visitas','modelos','conf','prazos','servicos','ind','lanc'];
+let cfg=JSON.parse(localStorage.getItem('upafluxo_cfg')||'{}');
+let sb=null,user=null,data={};
+const persist=()=>localStorage.setItem(LS,JSON.stringify(data));
+const vazio=()=>{COLS.forEach(c=>data[c]=data[c]||[])};
+const linha=(c,o)=>({id:o.id,colecao:c,dados:o,atualizado_por:user?.email||null,updated_at:new Date().toISOString()});
+const remoto=()=>sb&&user;
+
+async function carregar(){
+  try{data=JSON.parse(localStorage.getItem(LS)||'{}')}catch(e){data={}}
+  vazio();
+  if(remoto()){
+    const {data:rows,error}=await sb.from('registros').select('id,colecao,dados').limit(20000);
+    if(error){toast('Erro ao carregar: '+error.message);return}
+    if(rows.length===0){
+      const todos=[];COLS.forEach(c=>data[c].forEach(o=>{o.id=o.id||uid();todos.push(linha(c,o))}));
+      if(todos.length){const r=await sb.from('registros').upsert(todos);if(r.error)toast('Erro ao enviar dados locais: '+r.error.message)}
+    }else{
+      COLS.forEach(c=>data[c]=[]);
+      rows.forEach(r=>{if(data[r.colecao])data[r.colecao].push({...r.dados,id:r.id})});
+    }
+    persist();
+  }
+}
+async function salvar(c,o){
+  o.id=o.id||uid();
+  const i=data[c].findIndex(x=>x.id===o.id);
+  if(i>=0)data[c][i]=o;else data[c].push(o);
+  persist();
+  if(remoto()){const r=await sb.from('registros').upsert(linha(c,o));if(r.error)toast('Erro ao sincronizar: '+r.error.message)}
+  return o;
+}
+async function salvarLote(lista){
+  lista.forEach(([c,o])=>{o.id=o.id||uid();data[c].push(o)});
+  persist();
+  if(remoto()){const r=await sb.from('registros').upsert(lista.map(([c,o])=>linha(c,o)));if(r.error)toast('Erro ao sincronizar: '+r.error.message)}
+}
+async function excluir(c,id){
+  data[c]=data[c].filter(x=>x.id!==id);persist();
+  if(remoto()){const r=await sb.from('registros').delete().eq('id',id);if(r.error)toast('Erro ao excluir: '+r.error.message)}
+}
+
+/* ================= Sugestões iniciais (ajuste à sua realidade) ================= */
+const SEED_FISC={
+ 'Vigilância Sanitária':['Licença sanitária vigente','Responsável técnico designado e documentação','PGRSS (resíduos) atualizado','Certificado de controle de pragas','Certificado de limpeza de caixa d\'água','POPs de limpeza e higienização','Controle de temperatura das geladeiras de medicamentos','Rotinas da CCIH / controle de infecção'],
+ 'Corpo de Bombeiros':['Certificado de aprovação vigente','Extintores dentro da validade','Sinalização e rotas de fuga','Iluminação de emergência testada','Brigada de incêndio treinada'],
+ 'Conselhos (CRM / COREN)':['Certidão de regularidade técnica','Escalas de médicos e enfermagem atualizadas','Registros profissionais conferidos','Dimensionamento de enfermagem'],
+ 'Segurança do Trabalho':['PGR e PCMSO vigentes','Treinamentos NR-32 em dia','Entrega de EPI registrada','CIPA / designado vigente'],
+ 'Gestão / Secretaria (CNES)':['CNES atualizado','Profissionais cadastrados e escalas lançadas','Comissões ativas (Núcleo de Segurança do Paciente, Revisão de Prontuário, Óbitos)','Notificações de eventos adversos registradas'],
+ 'Infraestrutura e Equipamentos':['Contratos de manutenção vigentes','Calibração / manutenção preventiva de equipamentos','Laudo de gases medicinais','Teste de gerador e nobreak','PMOC do ar-condicionado']
+};
+const SEED_MODELOS=[
+ {nome:'Carro de emergência (carrinho de parada)',freq:'diaria',itens:['Lacre íntegro e numerado','Desfibrilador testado e carga adequada','Laringoscópio e lâmpada funcionando','Medicações dentro da validade','Material de via aérea completo','Tábua de massagem e ambu disponíveis']},
+ {nome:'Oxigênio, vácuo e aspiração',freq:'diaria',itens:['Pressão dos cilindros adequada','Cilindros reserva disponíveis','Fluxômetros e umidificadores funcionando','Aspiradores funcionando']},
+ {nome:'Geladeira de medicamentos',freq:'diaria',itens:['Temperatura entre 2 e 8 °C registrada','Porta vedando corretamente','Sem alimentos ou itens indevidos','Limpeza em dia']},
+ {nome:'Limpeza e higienização das áreas assistenciais',freq:'diaria',itens:['Classificação de risco','Consultórios','Sala de medicação','Observação','Banheiros','Expurgo']},
+ {nome:'Segurança e infraestrutura',freq:'semanal',itens:['Extintores desobstruídos e lacrados','Saídas de emergência desobstruídas','Iluminação de emergência','Gerador / nobreak','Ar-condicionado','Hidráulica e elétrica sem pendências']},
+ {nome:'Equipamentos assistenciais',freq:'semanal',itens:['Monitores multiparamétricos','Bombas de infusão','Oxímetros e eletrocardiógrafo','Macas e cadeiras de rodas']},
+ {nome:'Fechamento mensal da gestão',freq:'mensal',itens:['Escala do mês fechada','Estoque mínimo farmácia e almoxarifado','Documentos com validade conferidos','Indicadores lançados','Prazos do mês revisados']}
+];
+const SEED_IND=[
+ ['Tempo de espera para classificação de risco','min',10,'menor'],
+ ['Tempo de espera para atendimento médico','min',60,'menor'],
+ ['Adesão à higienização das mãos','%',80,'maior'],
+ ['Absenteísmo','%',5,'menor'],
+ ['Satisfação do usuário','%',85,'maior'],
+ ['Eventos adversos notificados','nº',null,'maior']
+];
+async function semear(){
+  if(data.fisc.length||data.modelos.length||data.ind.length)return;
+  const L=[];
+  Object.entries(SEED_FISC).forEach(([org,its])=>its.forEach(t=>L.push(['fisc',{orgao:org,titulo:t,status:'pendente'}])));
+  SEED_MODELOS.forEach(m=>L.push(['modelos',{...m}]));
+  SEED_IND.forEach(([nome,un,meta,sentido])=>L.push(['ind',{nome,unidade:un,meta,sentido}]));
+  await salvarLote(L);
+}
+
+/* ================= Regras ================= */
+const STF={conforme:['Conforme','grn'],pendente:['Pendente','amb'],nc:['Não conforme','red'],vencido:['Vencido','red'],na:['N/A','gry']};
+function stF(i){if(i.status==='na')return'na';if(i.validade&&diasAte(i.validade)<0)return'vencido';return i.status||'pendente'}
+function prontidao(items){const v=items.filter(i=>stF(i)!=='na');if(!v.length)return null;return Math.round(v.filter(i=>stF(i)==='conforme').length/v.length*100)}
+const ultimaConf=m=>data.conf.filter(c=>c.modeloId===m.id).sort((a,b)=>(b.data+b.hora).localeCompare(a.data+a.hora))[0];
+function confPendente(m){const u=ultimaConf(m);if(!u)return true;const lim={diaria:0,plantao:0,semanal:6,mensal:29}[m.freq]??0;return -diasAte(u.data)>lim}
+const FREQ={diaria:'Diária',plantao:'Por plantão',semanal:'Semanal',mensal:'Mensal'};
+const prazosAbertos=()=>data.prazos.filter(p=>p.status!=='concluido');
+const servAbertos=()=>data.servicos.filter(s=>s.status!=='concluido');
+const orgaos=()=>[...new Set(data.fisc.map(i=>i.orgao).concat(data.visitas.map(v=>v.orgao)).filter(Boolean))];
+
+/* ================= Modal genérico ================= */
+function campo(f,v){
+  v=v??f.def??'';let inp;
+  if(f.t==='area')inp=`<textarea name="${f.k}" rows="${f.rows||3}">${esc(v)}</textarea>`;
+  else if(f.t==='sel')inp=`<select name="${f.k}">${f.o.map(o=>{const [a,b]=Array.isArray(o)?o:[o,o];return`<option value="${esc(a)}" ${a==v?'selected':''}>${esc(b)}</option>`}).join('')}</select>`;
+  else inp=`<input name="${f.k}" type="${f.t||'text'}" value="${esc(v)}" ${f.r?'required':''} ${f.step?`step="${f.step}"`:''} ${f.dl?`list="dl_${f.k}"`:''}>${f.dl?`<datalist id="dl_${f.k}">${f.dl.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>`:''}`;
+  return`<label>${esc(f.l)}${f.r?' *':''}${inp}</label>`;
+}
+function abrirModal(html){
+  const el=document.createElement('div');el.className='ov';el.innerHTML=`<div class="md">${html}</div>`;
+  el.addEventListener('click',e=>{if(e.target===el||e.target.closest('[data-x]'))el.remove()});
+  document.body.appendChild(el);return el;
+}
+function modal(titulo,campos,val,onSave,onDel,extra){
+  val=val||{};
+  const el=abrirModal(`<h3>${esc(titulo)}</h3>${extra||''}<form>${campos.map(f=>campo(f,val[f.k])).join('')}<div class="bt"><button type="button" class="b2" data-x>Cancelar</button>${onDel?'<button type="button" class="bd" data-del>Excluir</button>':''}<button class="b1">Salvar</button></div></form>`);
+  $('form',el).addEventListener('submit',async e=>{
+    e.preventDefault();
+    const fd=new FormData(e.target),o={...val};
+    campos.forEach(f=>{let x=fd.get(f.k);if(f.t==='number')x=x===''||x==null?null:parseFloat(x);o[f.k]=x});
+    await onSave(o);el.remove();render();
+  });
+  const d=$('[data-del]',el);
+  if(d)d.onclick=async()=>{if(confirm('Excluir este registro?')){await onDel();el.remove();render()}};
+}
+
+/* ================= Telas ================= */
+const TABS=[['inicio','🏠','Início'],['fisc','🛡️','Fiscaliz.'],['conf','✅','Conferir'],['prazos','⏰','Prazos'],['serv','🔧','Serviços'],['ind','📊','Indic.']];
+let aba='inicio',subF='itens',filtro={prazos:'abertos',serv:'abertos'};const openOrg=new Set();
+
+function render(){
+  $('#sync').textContent=remoto()?'☁️ online':'💾 local';
+  $('#tabs').style.display='flex';
+  $('#tabs').innerHTML=TABS.map(([k,i,l])=>`<button class="${aba===k?'on':''}" data-t="${k}"><span>${i}</span>${l}</button>`).join('');
+  $('#app').innerHTML={inicio:vInicio,fisc:vFisc,conf:vConf,prazos:vPrazos,serv:vServ,ind:vInd}[aba]();
+}
+
+/* ---- Início ---- */
+function vInicio(){
+  const ab=prazosAbertos(),venc=ab.filter(p=>diasAte(p.venc)<0),prox=ab.filter(p=>{const d=diasAte(p.venc);return d>=0&&d<=30});
+  const pr=prontidao(data.fisc),docs=data.fisc.filter(i=>i.validade&&i.status!=='na'&&diasAte(i.validade)<=30);
+  const confP=data.modelos.filter(confPendente),sa=servAbertos(),sat=sa.filter(s=>s.prazo&&diasAte(s.prazo)<0);
+  const vis=data.visitas.filter(v=>v.status!=='realizada'&&diasAte(v.data)>=0).sort((a,b)=>a.data.localeCompare(b.data))[0];
+  const aviso=[];
+  venc.sort((a,b)=>a.venc.localeCompare(b.venc)).forEach(p=>aviso.push({s:0,t:p.titulo,sub:`Prazo · venceu ${fmt(p.venc)}`,b:chip('Vencido','red'),a:'prazo',id:p.id}));
+  data.fisc.filter(i=>stF(i)==='vencido'||stF(i)==='nc').forEach(i=>aviso.push({s:1,t:i.titulo,sub:`${i.orgao} · ${stF(i)==='vencido'?'documento vencido':'não conforme'}`,b:chip('Fiscalização','red'),a:'itemF',id:i.id}));
+  sat.forEach(s=>aviso.push({s:2,t:s.titulo,sub:`Serviço atrasado · prazo ${fmt(s.prazo)}`,b:chip('Atrasado','red'),a:'serv',id:s.id}));
+  confP.forEach(m=>aviso.push({s:3,t:m.nome,sub:`Conferência ${FREQ[m.freq].toLowerCase()} pendente`,b:chip('Conferir','amb'),a:'conferir',id:m.id}));
+  docs.filter(i=>diasAte(i.validade)>=0).forEach(i=>aviso.push({s:4,t:i.titulo,sub:`${i.orgao} · vence ${fmt(i.validade)}`,b:bdg(diasAte(i.validade)),a:'itemF',id:i.id}));
+  prox.filter(p=>diasAte(p.venc)<=7).forEach(p=>aviso.push({s:5,t:p.titulo,sub:`Prazo · ${fmt(p.venc)}`,b:bdg(diasAte(p.venc)),a:'prazo',id:p.id}));
+  aviso.sort((a,b)=>a.s-b.s);
+  let h='';
+  if(vis){const d=diasAte(vis.data);h+=`<div class="alert" data-go="fisc">⚠️ ${esc(vis.tipo||'Visita')} ${d===0?'HOJE':'em '+d+' dia(s)'}: ${esc(vis.orgao)} (${fmt(vis.data)}). Prontidão atual: ${pr==null?'—':pr+'%'}. Toque para revisar.</div>`}
+  h+=`<div class="grid">
+  <button class="kpi ${pr>=80?'grn':pr>=50?'amb':'red'}" data-go="fisc"><small>Prontidão p/ fiscalização</small><b>${pr==null?'—':pr+'%'}</b>${pr==null?'':pb(pr)}</button>
+  <button class="kpi ${venc.length?'red':'grn'}" data-go="prazos"><small>Prazos vencidos</small><b>${venc.length}</b><small>${prox.length} nos próx. 30 dias</small></button>
+  <button class="kpi ${confP.length?'amb':'grn'}" data-go="conf"><small>Conferências pendentes</small><b>${confP.length}</b><small>de ${data.modelos.length} rotinas</small></button>
+  <button class="kpi ${sat.length?'red':''}" data-go="serv"><small>Serviços em aberto</small><b>${sa.length}</b><small>${sat.length} atrasado(s)</small></button></div>`;
+  h+=`<h2>Atenção agora</h2>`+(aviso.length?aviso.slice(0,15).map(x=>row(x.a==='prazo'?'prazo':x.a,x.id,x.t,esc(x.sub),x.b)).join(''):empty('Tudo em dia 🎉'));
+  return h;
+}
+
+/* ---- Fiscalização ---- */
+function vFisc(){
+  const seg=`<div class="seg"><button class="${subF==='itens'?'on':''}" data-a="subF" data-id="itens">Itens por órgão</button><button class="${subF==='visitas'?'on':''}" data-a="subF" data-id="visitas">Visitas</button></div>`;
+  if(subF==='visitas')return seg+vVisitas();
+  const pr=prontidao(data.fisc);
+  let h=seg+`<div class="card"><b>Prontidão geral: ${pr==null?'—':pr+'%'}</b>${pr==null?'':pb(pr)}<div class="bar" style="margin:10px 0 0"><button class="btn" data-a="itemF">+ Item</button><button class="btn sec" data-a="relatorio">🖨️ Relatório de prontidão</button></div></div>`;
+  orgaos().forEach(o=>{
+    const its=data.fisc.filter(i=>i.orgao===o);if(!its.length)return;const p=prontidao(its);
+    h+=`<details data-org="${esc(o)}" ${openOrg.has(o)?'open':''}><summary><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(o)}</b>${chip(p==null?'—':p+'%',p>=80?'grn':p>=50?'amb':'red')}</div>${p==null?'':pb(p)}</summary><div class="in">`+
+    its.sort((a,b)=>a.titulo.localeCompare(b.titulo)).map(i=>{const s=stF(i);return row('itemF',i.id,i.titulo,esc([i.responsavel,i.validade?'validade '+fmt(i.validade):''].filter(Boolean).join(' · ')),(i.validade&&s!=='na'?bdg(diasAte(i.validade)):'')+' '+chip(...STF[s]))}).join('')+`</div></details>`;
+  });
+  return h;
+}
+function vVisitas(){
+  const l=[...data.visitas].sort((a,b)=>b.data.localeCompare(a.data));
+  return`<div class="bar"><button class="btn" data-a="visitaF">+ Registrar visita / fiscalização</button></div>`+(l.length?l.map(v=>{const d=diasAte(v.data);return row('visitaF',v.id,`${v.orgao} · ${v.tipo||'Visita'}`,esc(fmt(v.data)+(v.fiscal?' · '+v.fiscal:'')),v.status==='realizada'?chip('Realizada','gry'):bdg(d))}).join(''):empty('Nenhuma visita registrada. Agende aqui para o painel avisar com antecedência.'));
+}
+
+/* ---- Conferências ---- */
+function vConf(){
+  let h=`<div class="bar"><button class="btn" data-a="modeloF">+ Nova rotina</button></div>`;
+  if(!data.modelos.length)return h+empty('Nenhuma rotina de conferência.');
+  data.modelos.forEach(m=>{
+    const u=ultimaConf(m),p=confPendente(m);
+    h+=`<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><b>${esc(m.nome)}</b><small style="display:block;color:var(--mut)">${FREQ[m.freq]} · ${m.itens.length} itens${u?` · última: ${fmt(u.data)} ${esc(u.hora||'')} por ${esc(u.resp)}${u.nc?` · ${u.nc} NC`:''}`:' · nunca realizada'}</small></div>${p?chip('Pendente','amb'):chip('Em dia','grn')}</div>
+    <div class="bar" style="margin:10px 0 0"><button class="btn" data-a="conferir" data-id="${m.id}">Conferir agora</button><button class="btn sec" data-a="histConf" data-id="${m.id}">Histórico</button><button class="btn sec" data-a="modeloF" data-id="${m.id}">Editar</button></div></div>`;
+  });
+  return h;
+}
+
+/* ---- Prazos ---- */
+function vPrazos(){
+  const f=filtro.prazos;
+  const fl=[['abertos','Abertos'],['vencidos','Vencidos'],['todos','Todos'],['concluidos','Concluídos']];
+  let l=[...data.prazos];
+  if(f==='abertos')l=l.filter(p=>p.status!=='concluido');
+  if(f==='vencidos')l=l.filter(p=>p.status!=='concluido'&&diasAte(p.venc)<0);
+  if(f==='concluidos')l=l.filter(p=>p.status==='concluido');
+  l.sort((a,b)=>(a.venc||'9').localeCompare(b.venc||'9'));
+  return`<div class="bar"><button class="btn" data-a="prazoF">+ Novo prazo</button></div><div class="chips">${fl.map(([k,t])=>`<button class="${f===k?'on':''}" data-a="fprazos" data-id="${k}">${t}</button>`).join('')}</div>`+
+  (l.length?l.map(p=>row('prazo',p.id,p.titulo,esc([p.categoria,p.responsavel,fmt(p.venc),p.recorrencia&&p.recorrencia!=='nenhuma'?'↻ '+p.recorrencia:''].filter(Boolean).join(' · ')),(p.status==='concluido'?chip('Concluído','gry'):(p.prioridade==='alta'?chip('Alta','red')+' ':'')+bdg(diasAte(p.venc))+` <button class="ck" data-a="concluirPrazo" data-id="${p.id}">✓</button>`))).join(''):empty('Nada por aqui.'));
+}
+
+/* ---- Serviços ---- */
+const SST={aberto:['Aberto','amb'],andamento:['Em andamento','yel'],aguardando:['Aguardando','gry'],concluido:['Concluído','grn']};
+function vServ(){
+  const f=filtro.serv,fl=[['abertos','Em aberto'],['atrasados','Atrasados'],['todos','Todos'],['concluidos','Concluídos']];
+  let l=[...data.servicos];
+  if(f==='abertos')l=l.filter(s=>s.status!=='concluido');
+  if(f==='atrasados')l=l.filter(s=>s.status!=='concluido'&&s.prazo&&diasAte(s.prazo)<0);
+  if(f==='concluidos')l=l.filter(s=>s.status==='concluido');
+  l.sort((a,b)=>(a.prazo||'9').localeCompare(b.prazo||'9'));
+  return`<div class="bar"><button class="btn" data-a="servF">+ Novo serviço</button></div><div class="chips">${fl.map(([k,t])=>`<button class="${f===k?'on':''}" data-a="fserv" data-id="${k}">${t}</button>`).join('')}</div>`+
+  (l.length?l.map(s=>{const ult=(s.hist||[]).slice(-1)[0];return row('servF',s.id,s.titulo,esc([s.tipo,s.responsavel,s.prazo?'prazo '+fmt(s.prazo):''].filter(Boolean).join(' · '))+(ult?`<br>↳ ${esc(fmt(ult.d))}: ${esc(ult.t)}`:''),(s.status!=='concluido'&&s.prazo?bdg(diasAte(s.prazo))+' ':'')+chip(...SST[s.status||'aberto']))}).join(''):empty('Nenhum serviço.'));
+}
+
+/* ---- Indicadores ---- */
+function spark(vals,meta){
+  if(!vals.length)return'';const mx=Math.max(...vals,meta||0)*1.15||1,w=120,h=36,n=vals.length,bw=Math.max(w/n-4,3);
+  return`<svg viewBox="0 0 ${w} ${h}" width="120" height="36" style="color:var(--pri)">${vals.map((v,i)=>`<rect x="${i*(w/n)+2}" y="${h-v/mx*h}" width="${bw}" height="${v/mx*h}" rx="2" fill="currentColor" opacity=".75"/>`).join('')}${meta!=null?`<line x1="0" x2="${w}" y1="${h-meta/mx*h}" y2="${h-meta/mx*h}" stroke="var(--amb)" stroke-width="1.5" stroke-dasharray="3 3"/>`:''}</svg>`;
+}
+function semaforo(ind,v){
+  if(v==null||ind.meta==null)return['gry','Sem meta'];
+  if(ind.sentido==='menor')return v<=ind.meta?['grn','Meta atingida']:v<=ind.meta*1.1?['amb','Atenção']:['red','Fora da meta'];
+  return v>=ind.meta?['grn','Meta atingida']:v>=ind.meta*.9?['amb','Atenção']:['red','Fora da meta'];
+}
+function vInd(){
+  let h=`<div class="bar"><button class="btn" data-a="indF">+ Indicador</button><button class="btn sec" data-a="csvInd">⬇️ Exportar CSV</button></div>`;
+  if(!data.ind.length)return h+empty('Nenhum indicador cadastrado.');
+  data.ind.forEach(ind=>{
+    const ls=data.lanc.filter(l=>l.indId===ind.id).sort((a,b)=>a.mes.localeCompare(b.mes)),u=ls[ls.length-1],[c,t]=semaforo(ind,u?.valor);
+    h+=`<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(ind.nome)}</b>${chip(t,c)}</div>
+    <div style="display:flex;justify-content:space-between;align-items:end;margin-top:8px"><div><span style="font-size:24px;font-weight:700">${u?esc(u.valor):'—'}</span> <small style="color:var(--mut)">${esc(ind.unidade||'')} ${u?'· '+fmtMes(u.mes):''}</small><small style="display:block;color:var(--mut)">Meta: ${ind.meta==null?'—':(ind.sentido==='menor'?'≤ ':'≥ ')+ind.meta} ${esc(ind.unidade||'')}</small></div>${spark(ls.slice(-6).map(x=>x.valor),ind.meta)}</div>
+    <div class="bar" style="margin:10px 0 0"><button class="btn" data-a="lancF" data-id="${ind.id}">Lançar valor</button><button class="btn sec" data-a="indF" data-id="${ind.id}">Editar</button></div></div>`;
+  });
+  return h;
+}
+
+/* ================= Ações ================= */
+const A={};
+A.subF=id=>{subF=id;render()};
+A.fprazos=id=>{filtro.prazos=id;render()};
+A.fserv=id=>{filtro.serv=id;render()};
+A.itemF=id=>{
+  const it=data.fisc.find(x=>x.id===id)||{status:'pendente'};
+  modal(id?'Editar item':'Novo item de fiscalização',[
+    {k:'orgao',l:'Órgão / área',r:1,dl:orgaos()},{k:'titulo',l:'Exigência / documento',r:1},
+    {k:'status',l:'Situação',t:'sel',o:[['pendente','Pendente'],['conforme','Conforme'],['nc','Não conforme'],['na','Não se aplica']]},
+    {k:'validade',l:'Validade (se houver)',t:'date'},{k:'responsavel',l:'Responsável'},{k:'link',l:'Link do documento (Drive, etc.)'},{k:'obs',l:'Observações',t:'area'}
+  ],it,o=>salvar('fisc',o),id?()=>excluir('fisc',id):null);
+};
+A.visitaF=id=>{
+  const v=data.visitas.find(x=>x.id===id)||{status:'agendada',data:hoje()};
+  modal(id?'Editar visita':'Registrar visita / fiscalização',[
+    {k:'data',l:'Data',t:'date',r:1},{k:'orgao',l:'Órgão',r:1,dl:orgaos()},
+    {k:'tipo',l:'Tipo',t:'sel',o:['Visita técnica','Fiscalização','Auditoria','Vistoria']},{k:'fiscal',l:'Fiscal / contato'},
+    {k:'status',l:'Situação',t:'sel',o:[['agendada','Agendada'],['realizada','Realizada']]},
+    {k:'resultado',l:'Resultado / observações',t:'area'},{k:'pendencias',l:'Pendências apontadas',t:'area'},{k:'prazoResp',l:'Prazo para responder pendências',t:'date'}
+  ],v,async o=>{
+    if(o.pendencias&&o.prazoResp&&!o.prazoId){
+      const p=await salvar('prazos',{titulo:`Responder pendências – ${o.orgao}`,categoria:'Fiscalização',venc:o.prazoResp,status:'aberto',prioridade:'alta',recorrencia:'nenhuma'});
+      o.prazoId=p.id;toast('Prazo de resposta criado automaticamente');
+    }
+    await salvar('visitas',o);
+  },id?()=>excluir('visitas',id):null);
+};
+A.modeloF=id=>{
+  const m=data.modelos.find(x=>x.id===id)||{freq:'diaria',itens:[]};
+  modal(id?'Editar rotina':'Nova rotina de conferência',[
+    {k:'nome',l:'Nome da rotina',r:1},{k:'freq',l:'Frequência',t:'sel',o:Object.entries(FREQ)},{k:'itensTxt',l:'Itens (um por linha)',t:'area',rows:8}
+  ],{...m,itensTxt:m.itens.join('\n')},o=>{o.itens=o.itensTxt.split('\n').map(s=>s.trim()).filter(Boolean);delete o.itensTxt;return salvar('modelos',o)},id?()=>excluir('modelos',id):null);
+};
+A.conferir=id=>{
+  const m=data.modelos.find(x=>x.id===id);if(!m)return;
+  const el=abrirModal(`<h3>${esc(m.nome)}</h3><form>
+  <label>Responsável *<input name="resp" required value="${esc(localStorage.getItem('upa_resp')||user?.email||'')}"></label>
+  <label>Turno<select name="turno">${['Manhã','Tarde','Noite','Plantão diurno','Plantão noturno'].map(t=>`<option>${t}</option>`).join('')}</select></label>
+  <button type="button" class="btn sec" id="todosC" style="width:100%;margin-bottom:6px">Marcar tudo como conforme</button>
+  ${m.itens.map((t,i)=>`<div class="ci"><div>${esc(t)}</div><div class="tri"><label><input type="radio" name="i${i}" value="c" ${i===0?'required':''}>Conforme</label><label class="nc"><input type="radio" name="i${i}" value="nc">Não conf.</label><label><input type="radio" name="i${i}" value="na">N/A</label></div></div>`).join('')}
+  <label style="margin-top:10px">Observações<textarea name="obs" rows="2"></textarea></label>
+  <div class="bt"><button type="button" class="b2" data-x>Cancelar</button><button class="b1">Registrar</button></div></form>`);
+  $('#todosC',el).onclick=()=>el.querySelectorAll('input[value=c]').forEach(r=>r.checked=true);
+  $('form',el).addEventListener('submit',async e=>{
+    e.preventDefault();const fd=new FormData(e.target);
+    const itens=m.itens.map((t,i)=>({t,r:fd.get('i'+i)}));const ncs=itens.filter(x=>x.r==='nc');
+    localStorage.setItem('upa_resp',fd.get('resp'));
+    await salvar('conf',{modeloId:m.id,modeloNome:m.nome,data:hoje(),hora:agora(),resp:fd.get('resp'),turno:fd.get('turno'),itens,obs:fd.get('obs'),nc:ncs.length});
+    if(ncs.length&&confirm(`${ncs.length} não conformidade(s). Abrir um serviço para corrigir?`)){
+      await salvar('servicos',{titulo:`Corrigir NC – ${m.nome}`,tipo:'Conferência',status:'aberto',abertura:hoje(),prazo:addDias(hoje(),3),responsavel:'',descricao:ncs.map(x=>'• '+x.t).join('\n'),hist:[{d:hoje(),t:'Aberto automaticamente pela conferência'}]});
+    }
+    el.remove();toast('Conferência registrada');render();
+  });
+};
+A.histConf=id=>{
+  const m=data.modelos.find(x=>x.id===id);
+  const l=data.conf.filter(c=>c.modeloId===id).sort((a,b)=>(b.data+b.hora).localeCompare(a.data+a.hora)).slice(0,30);
+  abrirModal(`<h3>Histórico – ${esc(m.nome)}</h3>${l.length?l.map(c=>row('x','',fmt(c.data)+' '+(c.hora||'')+' · '+c.resp,esc((c.turno||'')+(c.obs?' · '+c.obs:'')),c.nc?chip(c.nc+' NC','red'):chip('OK','grn'))).join(''):empty('Sem registros.')}<div class="bt"><button class="b2" data-x>Fechar</button></div>`);
+};
+A.prazoF=id=>{
+  const p=data.prazos.find(x=>x.id===id)||{status:'aberto',prioridade:'normal',recorrencia:'nenhuma',categoria:'Contrato'};
+  modal(id?'Editar prazo':'Novo prazo',[
+    {k:'titulo',l:'O que precisa ser feito',r:1},{k:'categoria',l:'Categoria',t:'sel',o:['Contrato','Processo','Documento / licença','Manutenção','Treinamento','Relatório / prestação de contas','Fiscalização','Outro']},
+    {k:'venc',l:'Vencimento',t:'date',r:1},{k:'responsavel',l:'Responsável'},{k:'prioridade',l:'Prioridade',t:'sel',o:[['normal','Normal'],['alta','Alta']]},
+    {k:'recorrencia',l:'Repetir',t:'sel',o:[['nenhuma','Não repete'],['mensal','Mensal'],['trimestral','Trimestral'],['semestral','Semestral'],['anual','Anual']]},
+    {k:'status',l:'Situação',t:'sel',o:[['aberto','Aberto'],['andamento','Em andamento'],['concluido','Concluído']]},{k:'obs',l:'Observações',t:'area'}
+  ],p,o=>salvar('prazos',o),id?()=>excluir('prazos',id):null);
+};
+A.prazo=id=>A.prazoF(id);
+A.concluirPrazo=async id=>{
+  const p=data.prazos.find(x=>x.id===id);if(!p||!confirm(`Concluir "${p.titulo}"?`))return;
+  p.status='concluido';p.concluidoEm=hoje();await salvar('prazos',p);
+  const n={mensal:1,trimestral:3,semestral:6,anual:12}[p.recorrencia];
+  if(n){await salvar('prazos',{...p,id:undefined,status:'aberto',concluidoEm:null,venc:addMeses(p.venc,n)});toast('Próximo vencimento criado')}
+  render();
+};
+A.servF=id=>{
+  const s=data.servicos.find(x=>x.id===id)||{status:'aberto',abertura:hoje(),tipo:'Manutenção predial',hist:[]};
+  const hist=(s.hist||[]).length?`<div class="hist">${s.hist.map(h=>`${esc(fmt(h.d))} – ${esc(h.t)}`).join('<br>')}</div>`:'';
+  modal(id?'Editar serviço':'Novo serviço',[
+    {k:'titulo',l:'Serviço / ocorrência',r:1},{k:'tipo',l:'Tipo',t:'sel',o:['Manutenção predial','Equipamento médico','TI / Sistemas','Limpeza / higienização','Empresa / contrato','Conferência','Outro']},
+    {k:'responsavel',l:'Responsável / empresa'},{k:'abertura',l:'Abertura',t:'date'},{k:'prazo',l:'Prazo previsto',t:'date'},
+    {k:'status',l:'Situação',t:'sel',o:Object.entries(SST).map(([k,v])=>[k,v[0]])},{k:'descricao',l:'Descrição',t:'area'},{k:'novo',l:'Novo andamento (opcional)',t:'area',rows:2}
+  ],s,o=>{o.hist=[...(o.hist||[])];if(o.novo&&o.novo.trim())o.hist.push({d:hoje(),t:o.novo.trim()});delete o.novo;return salvar('servicos',o)},id?()=>excluir('servicos',id):null,hist);
+};
+A.serv=id=>A.servF(id);
+A.indF=id=>{
+  const i=data.ind.find(x=>x.id===id)||{sentido:'maior'};
+  modal(id?'Editar indicador':'Novo indicador',[
+    {k:'nome',l:'Nome',r:1},{k:'unidade',l:'Unidade (%, min, nº...)'},{k:'meta',l:'Meta',t:'number',step:'any'},{k:'sentido',l:'Melhor quando',t:'sel',o:[['maior','Maior é melhor'],['menor','Menor é melhor']]}
+  ],i,o=>salvar('ind',o),id?async()=>{await excluir('ind',id);for(const l of data.lanc.filter(l=>l.indId===id))await excluir('lanc',l.id)}:null);
+};
+A.lancF=id=>{
+  const ind=data.ind.find(x=>x.id===id),mes=hoje().slice(0,7),ex=data.lanc.find(l=>l.indId===id&&l.mes===mes);
+  modal(`Lançar – ${ind.nome}`,[{k:'mes',l:'Mês de referência',t:'month',r:1},{k:'valor',l:`Valor (${ind.unidade||''})`,t:'number',step:'any',r:1}],{mes,valor:ex?.valor},async o=>{
+    const e=data.lanc.find(l=>l.indId===id&&l.mes===o.mes);await salvar('lanc',{...(e||{}),indId:id,mes:o.mes,valor:o.valor});
+  });
+};
+A.csvInd=()=>{
+  const L=[['Indicador','Unidade','Meta','Mes','Valor']];
+  data.ind.forEach(i=>data.lanc.filter(l=>l.indId===i.id).sort((a,b)=>a.mes.localeCompare(b.mes)).forEach(l=>L.push([i.nome,i.unidade||'',i.meta??'',l.mes,l.valor])));
+  baixar('indicadores_upa.csv','\ufeff'+L.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(';')).join('\n'),'text/csv');
+};
+A.relatorio=()=>{
+  const p=prontidao(data.fisc);
+  let h=`<h1>Relatório de prontidão – UPA Rocinha</h1><p>Emitido em ${fmt(hoje())} às ${agora()} · Prontidão geral: <b>${p==null?'—':p+'%'}</b></p>`;
+  orgaos().forEach(o=>{const its=data.fisc.filter(i=>i.orgao===o);if(!its.length)return;
+    h+=`<h2>${esc(o)} (${prontidao(its)??'—'}%)</h2><table><tr><th>Exigência</th><th>Situação</th><th>Validade</th><th>Responsável</th><th>Obs.</th></tr>${its.map(i=>`<tr><td>${esc(i.titulo)}</td><td>${STF[stF(i)][0]}</td><td>${fmt(i.validade)}</td><td>${esc(i.responsavel||'')}</td><td>${esc(i.obs||'')}</td></tr>`).join('')}</table>`});
+  const pv=prazosAbertos().filter(p=>diasAte(p.venc)<=30).sort((a,b)=>a.venc.localeCompare(b.venc));
+  h+=`<h2>Prazos vencidos e próximos 30 dias</h2><table><tr><th>Prazo</th><th>Vencimento</th><th>Responsável</th></tr>${pv.map(x=>`<tr><td>${esc(x.titulo)}</td><td>${fmt(x.venc)}</td><td>${esc(x.responsavel||'')}</td></tr>`).join('')||'<tr><td colspan=3>Nenhum</td></tr>'}</table>`;
+  $('#print').innerHTML=h;document.body.classList.add('printing');
+  window.onafterprint=()=>document.body.classList.remove('printing');
+  setTimeout(()=>window.print(),100);
+};
+function baixar(nome,txt,tipo){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:tipo}));a.download=nome;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+A.exportar=()=>baixar(`upafluxo_backup_${hoje()}.json`,JSON.stringify(data),'application/json');
+A.importar=()=>{
+  const i=document.createElement('input');i.type='file';i.accept='.json';
+  i.onchange=async()=>{try{
+    const d=JSON.parse(await i.files[0].text());if(!confirm('Importar este backup? Registros com o mesmo ID serão substituídos.'))return;
+    const L=[];COLS.forEach(c=>(d[c]||[]).forEach(o=>{o.id=o.id||uid();const k=data[c].findIndex(x=>x.id===o.id);if(k>=0)data[c].splice(k,1);L.push([c,o])}));
+    await salvarLote(L);toast('Backup importado');render();
+  }catch(e){toast('Arquivo inválido')}};
+  i.click();
+};
+A.sair=async()=>{if(sb)await sb.auth.signOut();user=null;location.reload()};
+A.config=()=>{
+  const el=abrirModal(`<h3>Configurações</h3>
+  <p style="color:var(--mut);margin-top:0">${remoto()?`Conectado como <b>${esc(user.email)}</b>. Dados sincronizados com o Supabase.`:'Modo local: os dados ficam só neste aparelho. Conecte o Supabase para usar em equipe e em vários aparelhos.'}</p>
+  <form><label>Supabase – Project URL<input name="url" value="${esc(cfg.url||'')}" placeholder="https://xxxx.supabase.co"></label>
+  <label>Supabase – anon public key<input name="key" value="${esc(cfg.key||'')}"></label>
+  <div class="bt" style="justify-content:flex-start"><button class="b1">Salvar conexão</button></div></form>
+  <div class="bar" style="margin-top:12px"><button class="btn sec" data-a="exportar">⬇️ Backup (JSON)</button><button class="btn sec" data-a="importar">⬆️ Importar backup</button>${remoto()?'<button class="btn sec" data-a="sair">Sair</button>':''}</div>
+  <div class="bt"><button class="b2" data-x>Fechar</button></div>`);
+  $('form',el).addEventListener('submit',e=>{e.preventDefault();const fd=new FormData(e.target);cfg={url:fd.get('url').trim(),key:fd.get('key').trim()};localStorage.setItem('upafluxo_cfg',JSON.stringify(cfg));location.reload()});
+};
+
+/* ================= Eventos ================= */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-t]');if(t){aba=t.dataset.t;render();window.scrollTo(0,0);return}
+  const g=e.target.closest('[data-go]');if(g){aba=g.dataset.go;render();window.scrollTo(0,0);return}
+  const a=e.target.closest('[data-a]');
+  if(a&&A[a.dataset.a]){A[a.dataset.a](a.dataset.id||undefined)}
+});
+document.addEventListener('toggle',e=>{const o=e.target.dataset&&e.target.dataset.org;if(o){e.target.open?openOrg.add(o):openOrg.delete(o)}},true);
+document.addEventListener('visibilitychange',async()=>{if(!document.hidden&&remoto()&&!document.querySelector('.ov')){await carregar();render()}});
+
+/* ================= Login e início ================= */
+function telaLogin(){
+  $('#tabs').style.display='none';$('#sync').textContent='';
+  $('#app').innerHTML=`<div class="card login"><h2 style="margin-top:0">Entrar</h2><form id="lg"><label>E-mail<input name="e" type="email" required autocomplete="username"></label><label>Senha<input name="s" type="password" required autocomplete="current-password"></label><button class="b1" style="width:100%">Entrar</button></form><p style="text-align:center"><a href="#" data-a="config">Alterar conexão</a></p></div>`;
+  $('#lg').addEventListener('submit',async e=>{
+    e.preventDefault();const fd=new FormData(e.target);
+    const {data:d,error}=await sb.auth.signInWithPassword({email:fd.get('e'),password:fd.get('s')});
+    if(error){toast('Não foi possível entrar: '+error.message);return}
+    user=d.user;await iniciar();
+  });
+}
+async function iniciar(){await carregar();await semear();render()}
+(async function(){
+  if(cfg.url&&cfg.key&&window.supabase){
+    sb=supabase.createClient(cfg.url,cfg.key);
+    const {data:{session}}=await sb.auth.getSession();user=session?.user||null;
+    if(!user){telaLogin();return}
+  }else if(cfg.url&&cfg.key){toast('Sem internet para carregar o Supabase. Usando modo local.')}
+  await iniciar();
+})();
+</script>
+</body>
+</html>

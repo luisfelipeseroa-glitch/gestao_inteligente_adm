@@ -1,0 +1,33 @@
+/* Camada do portal unificado — o visual base continua sendo o do app de manutenção (style.css) */
+.sidebar{overflow-y:auto}
+.side-group{margin:14px 14px 4px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8fb4e0;font-weight:700}
+.side-group:first-of-type{margin-top:8px}
+.sidebar .side-import{font-size:14px}
+
+/* Início */
+.hub-hero{background:linear-gradient(110deg,#123e70,#2678d4);color:#fff;border-radius:14px;padding:26px 28px;margin-bottom:16px}
+.hub-hero h2{margin:0 0 6px;font-size:24px;color:#fff}
+.hub-hero p{margin:0;opacity:.92;font-size:15px}
+.hub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-bottom:16px}
+.hub-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;background:#fff;border:1px solid #d4e1f2;border-radius:12px;padding:20px;color:#142f53;font-weight:400;box-shadow:0 2px 7px #102f5605;transition:transform .12s,box-shadow .12s}
+.hub-card:hover{background:#fff;transform:translateY(-2px);box-shadow:0 8px 20px #102f5614}
+.hub-card strong{font-size:17px}
+.hub-card small{font-size:13px;line-height:1.45;color:#60718a}
+.hub-ico{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:24px}
+.c1{background:#2874d4}.c2{background:#1681ac}.c3{background:#299765}.c4{background:#7a5bd0}.c5{background:#e08a1e}
+.hub-note p{margin:0;font-size:14px;line-height:1.55;color:#375476}
+
+/* Módulos embutidos */
+.mod-tab{padding:0}
+.mod-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid #d4e1f2;border-bottom:0;border-radius:11px 11px 0 0;padding:10px 14px;font-size:13px}
+.mod-bar strong{font-size:15px}
+.mod-bar>span:nth-of-type(1){color:#60718a}
+.mod-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+.mod-open{font-size:12px;font-weight:650;color:#164374;text-decoration:none;border:1px solid #c6d7ec;border-radius:8px;padding:8px 12px;background:#fff}
+.mod-open:hover{background:#eaf2fb}
+.mod-tab iframe{display:block;width:100%;height:calc(100vh - 215px);min-height:600px;border:1px solid #d4e1f2;border-radius:0 0 11px 11px;background:#f3f7fc}
+body[data-view=home] .page-title,body[data-view=mod] .page-title{display:none}
+@media(max-width:750px){.mod-tab iframe{height:calc(100vh - 150px)}.hub-hero{padding:18px}.hub-hero h2{font-size:20px}}
+@media print{#home,.mod-tab{display:none!important}}
+@media(max-width:750px){.side-group{display:none}}
+@media(min-width:751px){.sidebar{position:sticky;top:0;height:100vh;align-self:start;padding:16px 12px}.sidebar button,.side-import{padding:10px 14px}.sidebar-tagline{padding-top:18px}}

@@ -1,0 +1,33 @@
+UPA ROCINHA — GESTÃO INTELIGENTE (portal unificado)
+
+O QUE É
+Um único site com o layout do app de manutenção (cabeçalho, menu azul, rodapé) reunindo:
+  - Manutenção (relatórios mensais, calendário, documentos, indicadores)   -> index.html + app.js
+  - Central de Serviços (chamados, empresas, anexos, atesto)               -> modulos/central/
+  - UPA Fluxo (fiscalização, prazos, conferências, serviços)               -> modulos/fluxo/
+  - Gestão de RH                                                           -> modulos/rh/
+  - Entrega de EPI (reconhecimento facial / QR)                            -> modulos/epi/
+
+PUBLICAR NO GITHUB PAGES
+1. Faça backup do que está publicado hoje.
+2. Envie TODO o conteúdo desta pasta para o repositório (mantendo as subpastas).
+3. Abra o endereço do site. O menu lateral dá acesso a todos os módulos.
+
+LINKS DIRETOS
+  /#fluxo   /#rh   /#epi   /#central   /#dashboard
+Cada módulo também abre sozinho (botão "Abrir em nova aba"):
+  modulos/rh/index.html     (portal do servidor e acesso administrativo)
+  modulos/epi/index.html    (quiosque de entrega de EPI)
+  modulos/fluxo/index.html  modulos/central/central.html
+
+DADOS (nada foi migrado nem apagado)
+  - Manutenção e Central: ficam no navegador (localStorage / IndexedDB). Se o site novo ficar num
+    endereço diferente do antigo, exporte o JSON no site antigo e importe aqui.
+  - UPA Fluxo, EPI e RH: continuam nos seus próprios bancos Supabase e logins
+    (Fluxo: configurar em ⚙️ dentro do módulo; EPI e RH: já vêm configurados no arquivo).
+  - Esquema do Fluxo: modulos/fluxo/supabase_schema.sql
+
+OBSERVAÇÕES
+  - Câmera (EPI) funciona dentro do portal; o navegador pedirá permissão uma vez.
+  - Os módulos usam bibliotecas da internet (Supabase, etc.); sem internet, RH/EPI/Fluxo(sincronização) não carregam.
+  - Próximo passo recomendado: unificar login e banco (um só projeto Supabase) para ter um painel geral com dados de todos os módulos.

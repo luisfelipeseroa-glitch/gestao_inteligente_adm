@@ -1,0 +1,44 @@
+/* Ajuste visual dos módulos quando abertos dentro do portal Gestão Inteligente.
+   Só vale com html.embed — abrindo o módulo direto (link próprio), nada muda. */
+html.embed{color-scheme:light}
+html.embed body{font-family:Inter,"Segoe UI",Arial,sans-serif}
+
+/* ---------- UPA Fluxo ---------- */
+html.embed[data-mod=fluxo]{--bg:#f3f7fc;--card:#fff;--tx:#142f53;--mut:#60718a;--bd:#d4e1f2;--pri:#123e70;--pri2:#2678d4;--grn:#12805c;--grnb:#dcf5ea;--amb:#a15c00;--ambb:#fff0d1;--red:#b42318;--redb:#fde4e1;--yel:#6b6b00;--yelb:#f7f5c9;--gry:#475467;--gryb:#e8eef6}
+html.embed[data-mod=fluxo] header{padding:8px 16px;border-radius:0 0 12px 12px}
+html.embed[data-mod=fluxo] header h1{font-size:15px}
+html.embed[data-mod=fluxo] main{max-width:1100px}
+
+/* ---------- Entrega de EPI ---------- */
+html.embed[data-mod=epi]{--bg:#f3f7fc;--card:#fff;--ink:#142f53;--mut:#60718a;--pri:#123e70;--pri2:#2678d4;--bd:#d4e1f2}
+html.embed[data-mod=epi] header{padding:8px 16px;border-radius:0 0 12px 12px}
+html.embed[data-mod=epi] header h1{font-size:15px}
+html.embed[data-mod=epi] main{max-width:1100px}
+html.embed[data-mod=epi] button.b.sec{background:#e8eef6}
+
+/* ---------- RH ---------- */
+html.embed[data-mod=rh]{--primary:#123e70;--primary-2:#2678d4;--primary-soft:#e8eef6;--bg:#f3f7fc;--border:#d4e1f2;--text:#142f53}
+/* menu lateral do RH vira barra de abas no topo (o menu principal já é o do portal) */
+html.embed[data-mod=rh] .admin{flex-direction:column}
+html.embed[data-mod=rh] .sidebar{position:static;width:100%;transform:none!important;flex-direction:row;align-items:center;border-right:0;border-bottom:1px solid var(--border)}
+html.embed[data-mod=rh] .sidebar .brand{display:none}
+html.embed[data-mod=rh] .sidebar nav{display:flex;flex-direction:row;overflow-x:auto;padding:6px 10px;gap:2px}
+html.embed[data-mod=rh] .sidebar nav a{white-space:nowrap;margin:0}
+html.embed[data-mod=rh] .sidebar .rodape{border:0;padding:6px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+html.embed[data-mod=rh] .sidebar .rodape p{display:none}
+html.embed[data-mod=rh] .sidebar .rodape .btn.block{width:auto}
+html.embed[data-mod=rh] .main{margin-left:0}
+html.embed[data-mod=rh] .topbar{display:none!important}
+html.embed[data-mod=rh] .main-inner{max-width:1280px;padding:20px}
+
+/* ---------- Central de Serviços (da manutenção) ---------- */
+html.embed[data-mod=central]{background:#f3f7fc}
+html.embed[data-mod=central] body{background:#f3f7fc}
+html.embed[data-mod=central] header,html.embed[data-mod=central] footer{display:none}
+html.embed[data-mod=central] nav{border-radius:12px;margin:14px 16px 0;padding:8px}
+html.embed[data-mod=central] main{margin:14px auto}
+html.embed[data-mod=central] button{background:#1f5fa8}
+html.embed[data-mod=central] nav button{background:transparent;color:#234866}
+html.embed[data-mod=central] nav button.active{background:#123e70;color:#fff}
+html.embed[data-mod=central] .secondary{background:#e5edf4;color:#153b61}
+html.embed[data-mod=central] .danger{background:#9c3030}
