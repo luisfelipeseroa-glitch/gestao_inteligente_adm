@@ -74,3 +74,52 @@
     if (!document.hidden && ready && !timer && !busy) refresh(false);
   });
 })();
+
+/* Empresa executora: escolher entre as empresas cadastradas na Central de Serviços (fonte única). */
+(function () {
+  var empresas = [];
+  var baseControl = window.control;
+  var esc2 = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  window.control = function (key, label, type, choices, val, scope, idx) {
+    if (key === 'company' && (scope === undefined || scope === 'field') && empresas.length) {
+      var names = empresas.map(function (e) { return e.name; }).filter(Boolean);
+      if (val && names.indexOf(val) < 0) names.push(val);   // mantém nome antigo digitado à mão
+      var opts = '<option value="">Selecione a empresa cadastrada…</option>' + names.map(function (n) {
+        return '<option value="' + esc2(n) + '"' + (n === val ? ' selected' : '') + '>' + esc2(n) + '</option>';
+      }).join('');
+      return '<label>' + esc2(label) + '<select data-scope="field" data-key="company">' + opts + '</select>' +
+        '<small style="font-weight:400;color:#60718a">Não encontrou? Cadastre em <b>Central de Serviços → Empresas</b>.</small></label>';
+    }
+    return baseControl.apply(this, arguments);
+  };
+  async function loadEmpresas() {
+    try {
+      var rows = await UPA.db.list('central_empresas');
+      empresas = rows.map(function (r) { return r.dados; }).sort(function (a, b) { return String(a.name).localeCompare(String(b.name), 'pt-BR'); });
+    } catch (e) { /* sem conexão: mantém o campo como está */ }
+  }
+  async function refresh() {
+    var before = JSON.stringify(empresas.map(function (e) { return e.name; }));
+    await loadEmpresas();
+    if (before !== JSON.stringify(empresas.map(function (e) { return e.name; }))) {
+      var a = document.activeElement;
+      if (!(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && document.getElementById('form').contains(a))) renderForm();
+    }
+  }
+  document.addEventListener('change', function (e) {
+    var t = e.target;
+    if (!t || t.dataset.key !== 'company' || t.dataset.scope !== 'field') return;
+    var emp = empresas.find(function (x) { return x.name === t.value; });
+    if (!emp) return;
+    var r = current(); if (!r) return;
+    if (!r.contact) r.contact = [emp.contact, emp.email].filter(Boolean).join(' · ');
+    if (!r.technical && emp.technical) r.technical = emp.technical;
+    r.updatedAt = new Date().toISOString();
+    persist(); renderForm();
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('[data-tab="report"],#new,[data-tab-jump="report"]')) refresh();
+  });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });
+  UPA.ready().then(loadEmpresas).then(function () { renderForm(); }).catch(function () {});
+})();
