@@ -71,7 +71,7 @@ input[type=radio]{display:inline;width:auto;margin:0 4px 0 0}
 <nav id="tabs"></nav>
 <div id="print"></div>
 <div id="toast"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script><script src="../../lib/upa-db.js"></script>
 <script>
 /* ================= Utilitários ================= */
 const $=(s,e=document)=>e.querySelector(s);
@@ -95,7 +95,7 @@ const pb=p=>`<div class="pb"><i class="${p>=80?'':p>=50?'m':'l'}" style="width:$
 /* ================= Dados (local + Supabase) ================= */
 const LS='upafluxo_dados_v1';
 const COLS=['fisc','visitas','modelos','conf','prazos','servicos','ind','lanc'];
-let cfg=JSON.parse(localStorage.getItem('upafluxo_cfg')||'{}');
+let cfg={url:'banco-unico',key:'x'};
 let sb=null,user=null,data={};
 const persist=()=>localStorage.setItem(LS,JSON.stringify(data));
 const vazio=()=>{COLS.forEach(c=>data[c]=data[c]||[])};
@@ -106,7 +106,7 @@ async function carregar(){
   try{data=JSON.parse(localStorage.getItem(LS)||'{}')}catch(e){data={}}
   vazio();
   if(remoto()){
-    const {data:rows,error}=await sb.from('registros').select('id,colecao,dados').limit(20000);
+    const {data:rows,error}=await sb.from('registros').select('id,colecao,dados').in('colecao',COLS).limit(20000);
     if(error){toast('Erro ao carregar: '+error.message);return}
     if(rows.length===0){
       const todos=[];COLS.forEach(c=>data[c].forEach(o=>{o.id=o.id||uid();todos.push(linha(c,o))}));
@@ -448,16 +448,12 @@ A.importar=()=>{
   }catch(e){toast('Arquivo inválido')}};
   i.click();
 };
-A.sair=async()=>{if(sb)await sb.auth.signOut();user=null;location.reload()};
+A.sair=async()=>{try{await UPA.logout()}catch(e){}user=null;try{if(window.top!==window.self)window.top.location.reload();else location.reload()}catch(e){location.reload()}};
 A.config=()=>{
   const el=abrirModal(`<h3>Configurações</h3>
-  <p style="color:var(--mut);margin-top:0">${remoto()?`Conectado como <b>${esc(user.email)}</b>. Dados sincronizados com o Supabase.`:'Modo local: os dados ficam só neste aparelho. Conecte o Supabase para usar em equipe e em vários aparelhos.'}</p>
-  <form><label>Supabase – Project URL<input name="url" value="${esc(cfg.url||'')}" placeholder="https://xxxx.supabase.co"></label>
-  <label>Supabase – anon public key<input name="key" value="${esc(cfg.key||'')}"></label>
-  <div class="bt" style="justify-content:flex-start"><button class="b1">Salvar conexão</button></div></form>
+  <p style="color:var(--mut);margin-top:0">${remoto()?`Conectado como <b>${esc(user.email)}</b>. Dados sincronizados no banco único da Gestão Inteligente.`:'Modo local: sem conexão com o banco, os dados ficam só neste aparelho. Recarregue com internet e entre com seu login.'}</p>
   <div class="bar" style="margin-top:12px"><button class="btn sec" data-a="exportar">⬇️ Backup (JSON)</button><button class="btn sec" data-a="importar">⬆️ Importar backup</button>${remoto()?'<button class="btn sec" data-a="sair">Sair</button>':''}</div>
   <div class="bt"><button class="b2" data-x>Fechar</button></div>`);
-  $('form',el).addEventListener('submit',e=>{e.preventDefault();const fd=new FormData(e.target);cfg={url:fd.get('url').trim(),key:fd.get('key').trim()};localStorage.setItem('upafluxo_cfg',JSON.stringify(cfg));location.reload()});
 };
 
 /* ================= Eventos ================= */
@@ -483,11 +479,9 @@ function telaLogin(){
 }
 async function iniciar(){await carregar();await semear();render()}
 (async function(){
-  if(cfg.url&&cfg.key&&window.supabase){
-    sb=supabase.createClient(cfg.url,cfg.key);
-    const {data:{session}}=await sb.auth.getSession();user=session?.user||null;
-    if(!user){telaLogin();return}
-  }else if(cfg.url&&cfg.key){toast('Sem internet para carregar o Supabase. Usando modo local.')}
+  try{
+    const ses=await UPA.ready();sb=UPA.client();user=ses.user;
+  }catch(e){toast('Sem conexão com o banco: '+(window.UPA?UPA.msg(e):e.message)+'. Usando modo local.')}
   await iniciar();
 })();
 </script>

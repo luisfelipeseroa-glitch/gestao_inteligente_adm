@@ -21,6 +21,12 @@
   // "Novo relatório" (botão do app de manutenção) abre a aba de relatório: manter a vista coerente
   var nb = document.getElementById('new');
   if (nb) nb.addEventListener('click', function(){ afterTab('report'); });
+  // Login único: o portal só aparece depois de entrar
+  var lo = document.getElementById('logout');
+  if (lo) lo.addEventListener('click', function () { UPA.logout().then(function () { location.reload(); }); });
+  if (window.UPA) UPA.ready().then(function (s) {
+    if (lo && s && s.user) lo.innerHTML = '<span>⎋</span> Sair <small style="opacity:.7;font-size:10px;display:block;word-break:break-all">' + s.user.email + '</small>';
+  }).catch(function () {});
   // Abrir direto por link (#fluxo, #mod-rh, #dashboard...)
   var h = (location.hash || '').replace('#', '');
   if (h === 'fluxo' || h === 'rh' || h === 'epi' || h === 'central') h = 'mod-' + h;

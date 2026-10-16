@@ -20,14 +20,26 @@ Cada módulo também abre sozinho (botão "Abrir em nova aba"):
   modulos/epi/index.html    (quiosque de entrega de EPI)
   modulos/fluxo/index.html  modulos/central/central.html
 
-DADOS (nada foi migrado nem apagado)
-  - Manutenção e Central: ficam no navegador (localStorage / IndexedDB). Se o site novo ficar num
-    endereço diferente do antigo, exporte o JSON no site antigo e importe aqui.
-  - UPA Fluxo, EPI e RH: continuam nos seus próprios bancos Supabase e logins
-    (Fluxo: configurar em ⚙️ dentro do módulo; EPI e RH: já vêm configurados no arquivo).
-  - Esquema do Fluxo: modulos/fluxo/supabase_schema.sql
+BANCO ÚNICO E LOGIN ÚNICO (Supabase: dzvnannnwvrdvdoxgbeo)
+  Já ligados ao banco único: Manutenção, Central de Serviços e UPA Fluxo.
+  Ainda com banco próprio (migração em etapa seguinte): Gestão de RH e Entrega de EPI.
+
+  Configuração (uma vez só):
+  1. Supabase > SQL Editor > cole o conteúdo de sql/supabase_unificado.sql > Run.
+  2. Supabase > Authentication > Users > Add user: e-mail e senha da equipe,
+     marcando "Auto Confirm User". Para cada pessoa, um usuário.
+  3. Supabase > Authentication > Providers > Email: desligue "Allow new users to sign up".
+  4. Abra o site, entre com o e-mail e a senha. O mesmo login vale em todos os aparelhos.
+
+  Dados antigos:
+  - Central de Serviços: ao abrir pela primeira vez no mesmo navegador onde você cadastrou, os dados
+    antigos (empresas, chamados, fotos, assinaturas) são enviados ao banco automaticamente.
+    Há também o botão "Enviar dados antigos deste navegador ao banco" na aba Backup.
+  - Manutenção: relatórios salvos no navegador sobem ao banco sozinhos na primeira abertura.
+  - Fluxo: backups JSON podem ser importados em Configurações (engrenagem).
+  - Todos os acessos exigem login; qualquer usuário logado vê e edita tudo.
 
 OBSERVAÇÕES
   - Câmera (EPI) funciona dentro do portal; o navegador pedirá permissão uma vez.
-  - Os módulos usam bibliotecas da internet (Supabase, etc.); sem internet, RH/EPI/Fluxo(sincronização) não carregam.
-  - Próximo passo recomendado: unificar login e banco (um só projeto Supabase) para ter um painel geral com dados de todos os módulos.
+  - Os módulos usam bibliotecas da internet (Supabase, etc.); sem internet não carregam.
+  - Próximo passo: migrar RH e EPI para o banco único e criar um painel geral com dados de todos os módulos.
