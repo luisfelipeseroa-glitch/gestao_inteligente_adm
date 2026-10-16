@@ -1001,7 +1001,7 @@ async function pageProfissionais(el) {
   const carregar = async () => { lista = await dbq(sb.from('profissionais').select('*').order('nome')); desenhar(); };
   const filtrados = () => lista.filter(p => (mostrarInativos || p.ativo) && (!busca || [p.nome,p.matricula,p.setor,p.cargo_descricao].some(x => norm(x).includes(norm(busca)))));
   el.innerHTML = cabecalho('Profissionais','Cadastro e gestão de profissionais da unidade',
-    `<div class="row"><input type="file" id="imp" hidden accept=".csv,.xls,.xlsx">
+    `<div class="row"><input type="file" id="imp" hidden>
       <button class="btn outline sm" id="btn-imp">${ic('upload')}Importar CSV/Excel</button>${botoesExportar()}<button class="btn sm" id="novo">${ic('user-plus')}Cadastrar</button></div>`) +
     `<div class="row mb"><div class="busca grow" style="max-width:420px">${ic('search')}<input class="inp" id="busca" placeholder="Buscar por nome, matrícula ou setor..."></div>
       <label class="check"><input type="checkbox" id="inativos"> Mostrar inativos</label><span class="small muted" id="total"></span></div>

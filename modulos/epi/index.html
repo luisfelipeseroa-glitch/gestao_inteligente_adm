@@ -162,7 +162,7 @@ table.lista td img{width:48px;height:48px;object-fit:cover;border-radius:6px}
   <div class="card">
     <h2>Importar lista de funcion&aacute;rios (CSV / Excel)</h2>
     <p class="mut">Traga a lista pronta (por exemplo, a exporta&ccedil;&atilde;o do RH). Colunas aceitas: <b>Nome</b> (obrigat&oacute;ria), Matr&iacute;cula, Fun&ccedil;&atilde;o ou Cargo, Setor, Unidade. Os cadastros entram <b>sem foto</b>: depois, em &ldquo;Cadastrados&rdquo;, use <b>Editar</b> para tirar as fotos aos poucos. Quem j&aacute; existe (mesma matr&iacute;cula ou mesmo nome) &eacute; ignorado, sem apagar nada.</p>
-    <input type="file" id="fileLista" accept=".csv,.xlsx,.xls">
+    <input type="file" id="fileLista">
     <button class="b" id="btnLista">Importar lista</button>
     <div class="mut" id="listaInfo"></div>
   </div>
@@ -879,6 +879,7 @@ function linhasParaFuncs(linhas){
 $('btnLista').onclick=async()=>{
   const file=$('fileLista').files[0];
   if(!file){alert('Escolha o arquivo (.csv ou .xlsx).');return;}
+  if(!/\.(csv|xlsx|xls)$/i.test(file.name)){alert('Escolha um arquivo .csv ou .xlsx (Excel). O arquivo "'+file.name+'" não é desse tipo.');return;}
   $('btnLista').disabled=true;$('listaInfo').textContent='Lendo arquivo...';
   try{
     let linhas;
