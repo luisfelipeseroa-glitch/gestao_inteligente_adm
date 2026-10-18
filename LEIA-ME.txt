@@ -43,3 +43,8 @@ OBSERVAÇÕES
   - Câmera (EPI) funciona dentro do portal; o navegador pedirá permissão uma vez.
   - Os módulos usam bibliotecas da internet (Supabase, etc.); sem internet não carregam.
   - Próximo passo: migrar RH e EPI para o banco único e criar um painel geral com dados de todos os módulos.
+
+
+EPI NO BANCO ÚNICO
+- No SQL Editor do Supabase único, rode também sql/epi_no_banco_unico.sql (cria funcionarios, epis, entregas e o QR).
+- O módulo EPI usa o mesmo login do portal. Dados do EPI antigo: exporte o backup lá e importe aqui (ou reimporte a lista de funcionários).

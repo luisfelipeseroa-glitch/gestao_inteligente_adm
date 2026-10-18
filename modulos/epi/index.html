@@ -232,7 +232,8 @@ table.lista td img{width:48px;height:48px;object-fit:cover;border-radius:6px}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="../../lib/upa-db.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -242,8 +243,7 @@ table.lista td img{width:48px;height:48px;object-fit:cover;border-radius:6px}
 'use strict';
 
 /* ================= CONFIGURAÇÃO ================= */
-const SUPABASE_URL='https://diloscpworofjjfmhkbb.supabase.co';   // ex.: https://abcdefgh.supabase.co
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRpbG9zY3B3b3JvZmpqZm1oa2JiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwNzc4MTUsImV4cCI6MjEwNzY1MzgxNX0.l3HeY9ABgKohXV0f4BApZDByxQehsUyyDE13p9vEIKU';   // chave PÚBLICA (anon / publishable). Nunca a secret/service_role.
+const SUPABASE_URL='banco-unico',SUPABASE_KEY='x';   // o banco e o login agora são os do portal (lib/upa-db.js)
 const UNIDADE_PADRAO='UPA Rocinha';
 const QR_PREFIXO='EPIUPA:';
 /* ================================================= */
@@ -952,12 +952,12 @@ $('btnImp').onclick=async()=>{
   const c=cfg();
   if(!c.u||!c.k){tela('cfg');$('status').textContent='Configuração necessária';return;}
   if(typeof supabase==='undefined'){$('status').textContent='Biblioteca do banco não carregou (verifique a internet)';return;}
-  sb=supabase.createClient(c.u,c.k);
+  try{sb=UPA.client();}catch(e){$('status').textContent=UPA.msg(e);return;}
   limparForm();
   carregarModelos();
   try{
-    const {data}=await sb.auth.getSession();
-    if(data&&data.session)await entrar(data.session);else tela('login');
+    const ses=await UPA.ready();
+    if(ses)await entrar(ses);else tela('login');
   }catch(e){tela('login');}
   sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'&&usuario){usuario=null;tela('login');}});
 })();
