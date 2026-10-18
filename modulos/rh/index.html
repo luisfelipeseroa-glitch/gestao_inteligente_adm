@@ -7,6 +7,7 @@
 <link rel="icon" id="favicon" href="">
 <link rel="apple-touch-icon" id="apple-icon" href="">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../../lib/upa-db.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.441.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -193,12 +194,12 @@ document.getElementById('apple-icon').href = ICONE_UPA;
    2) Rode o supabase_schema.sql no SQL Editor do Supabase
    3) Publique este arquivo no GitHub Pages (index.html)
    ===================================================================== */
-const SUPABASE_URL = 'https://kltvsiuzzywsesehozso.supabase.co';        // ex.: https://abcdefgh.supabase.co
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtsdHZzaXV6enl3c2VzZWhvenNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNDIwNTYsImV4cCI6MjEwNDcxODA1Nn0.yHy7npBMOtE5Y4JBREYIC3ath39KTyVXdtEiVSNM7v8'; // Settings → API → anon public
+const SUPABASE_URL = 'banco-unico';        // banco e login são os do portal (lib/upa-db.js)
+const SUPABASE_ANON_KEY = 'x'; // Settings → API → anon public
 const NOME_UNIDADE = 'UPA Rocinha';
 
 const CONFIG_OK = !SUPABASE_URL.startsWith('COLE_AQUI') && !SUPABASE_ANON_KEY.startsWith('COLE_AQUI');
-const sb = (CONFIG_OK && window.supabase) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const sb = (CONFIG_OK && window.supabase && window.UPA) ? window.UPA.client() : null;
 
 /* ---------------------------------------------------------------------
    CONSTANTES (iguais às do app original)

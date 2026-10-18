@@ -48,3 +48,8 @@ OBSERVAÇÕES
 EPI NO BANCO ÚNICO
 - No SQL Editor do Supabase único, rode também sql/epi_no_banco_unico.sql (cria funcionarios, epis, entregas e o QR).
 - O módulo EPI usa o mesmo login do portal. Dados do EPI antigo: exporte o backup lá e importe aqui (ou reimporte a lista de funcionários).
+
+RH NO BANCO ÚNICO
+- No SQL Editor do Supabase único rode sql/rh_no_banco_unico.sql (tabelas do RH, portal do colaborador, perfis e seu acesso de administrador).
+- O RH usa o mesmo login do portal. O portal do colaborador (acesso por matrícula, sem senha) continua funcionando.
+- Dados do RH antigo (projeto kltvsiuz…): reimporte a lista de profissionais pelo botão Importar do RH; plantões/solicitações antigos precisam ser exportados do projeto antigo.
