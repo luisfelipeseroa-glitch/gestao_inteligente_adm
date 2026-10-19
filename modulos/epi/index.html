@@ -889,9 +889,20 @@ function linhasParaFuncs(linhas){
   // procura a linha de cabeçalho entre as primeiras 15 (pode haver título antes)
   let h=-1;
   for(let i=0;i<Math.min(15,linhas.length);i++){if(linhas[i].some(c=>chaveCab(c)==='nome')){h=i;break;}}
-  if(h<0)return [];
-  const cab=linhas[h].map(chaveCab);
-  return linhas.slice(h+1).map(l=>{const r={};cab.forEach((k,i)=>{if(k&&!r[k])r[k]=String(l[i]==null?'':l[i]).trim();});
+  let ini=h+1;
+  let cab;
+  if(h<0){
+    // arquivo SEM cabeçalho (ex.: exportação "matrícula; nome; cargo; setor"): deduz as colunas pelo conteúdo
+    const num=x=>/^\d{1,10}$/.test(String(x==null?'':x).trim());
+    const p=linhas.find(l=>l.filter(x=>String(x).trim()).length>=2);
+    if(!p)return [];
+    if(num(p[0])&&!num(p[1]))cab=['matricula','nome','funcao','setor','unidade'];
+    else if(!num(p[0])&&num(p[1]))cab=['nome','matricula','funcao','setor','unidade'];
+    else if(!num(p[0]))cab=['nome','funcao','setor','unidade'];
+    else return [];
+    ini=0;
+  }else cab=linhas[h].map(chaveCab);
+  return linhas.slice(ini).map(l=>{const r={};cab.forEach((k,i)=>{if(k&&!r[k])r[k]=String(l[i]==null?'':l[i]).trim();});
     if(!r.nome)return null;
     return {nome:r.nome,matricula:r.matricula||null,funcao:r.funcao||null,setor:r.setor||null,unidade:r.unidade||UNIDADE_PADRAO};
   }).filter(Boolean);
