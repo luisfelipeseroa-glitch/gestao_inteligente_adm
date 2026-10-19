@@ -7,6 +7,7 @@ Um único site com o layout do app de manutenção (cabeçalho, menu azul, rodap
   - UPA Fluxo (fiscalização, prazos, conferências, serviços)               -> modulos/fluxo/
   - Gestão de RH                                                           -> modulos/rh/
   - Entrega de EPI (reconhecimento facial / QR)                            -> modulos/epi/
+  - PGRSS · Resíduos de serviços de saúde (plano, pesagens, coletas, licenças) -> modulos/pgrss/
 
 PUBLICAR NO GITHUB PAGES
 1. Faça backup do que está publicado hoje.
@@ -14,7 +15,7 @@ PUBLICAR NO GITHUB PAGES
 3. Abra o endereço do site. O menu lateral dá acesso a todos os módulos.
 
 LINKS DIRETOS
-  /#fluxo   /#rh   /#epi   /#central   /#dashboard
+  /#fluxo   /#rh   /#epi   /#central   /#pgrss   /#dashboard
 Cada módulo também abre sozinho (botão "Abrir em nova aba"):
   modulos/rh/index.html     (portal do servidor e acesso administrativo)
   modulos/epi/index.html    (quiosque de entrega de EPI)
@@ -53,3 +54,13 @@ RH NO BANCO ÚNICO
 - No SQL Editor do Supabase único rode sql/rh_no_banco_unico.sql (tabelas do RH, portal do colaborador, perfis e seu acesso de administrador).
 - O RH usa o mesmo login do portal. O portal do colaborador (acesso por matrícula, sem senha) continua funcionando.
 - Dados do RH antigo (projeto kltvsiuz…): reimporte a lista de profissionais pelo botão Importar do RH; plantões/solicitações antigos precisam ser exportados do projeto antigo.
+
+
+PGRSS (RESÍDUOS DE SERVIÇOS DE SAÚDE)
+- Fica em modulos/pgrss/ e usa o banco único e o mesmo login. Não precisa de SQL novo: grava na tabela "registros"
+  (coleções pgrss_plano, pgrss_setores, pgrss_empresas, pgrss_pesagens, pgrss_coletas, pgrss_treinamentos,
+  pgrss_ocorrencias, pgrss_inspecoes, pgrss_meses) e os anexos (licenças, MTR, CDF, listas de presença) vão no bucket "anexos".
+- Primeiro uso: aba "Plano e responsáveis" (dados da unidade, RT com ART/TRT, direção, revisão dos textos) e aba "Setores" (botão
+  "Carregar setores padrão"). Depois: cadastrar as empresas e licenças e lançar pesagens, coletas, treinamentos e inspeções.
+- Aba "Imprimir documentos": PGRSS completo (capa, sumário, seções e anexos, com assinaturas) e relatório mensal.
+- Os textos-padrão seguem a RDC ANVISA nº 222/2018, mas devem ser revisados pelo responsável técnico antes de imprimir.

@@ -42,3 +42,15 @@ html.embed[data-mod=central] nav button{background:transparent;color:#234866}
 html.embed[data-mod=central] nav button.active{background:#123e70;color:#fff}
 html.embed[data-mod=central] .secondary{background:#e5edf4;color:#153b61}
 html.embed[data-mod=central] .danger{background:#9c3030}
+
+/* ---------- PGRSS ---------- */
+html.embed[data-mod=pgrss]{background:#f3f7fc}
+html.embed[data-mod=pgrss] body{background:#f3f7fc}
+html.embed[data-mod=pgrss] header,html.embed[data-mod=pgrss] footer{display:none}
+html.embed[data-mod=pgrss] nav{border-radius:12px;margin:14px 16px 0;padding:8px}
+html.embed[data-mod=pgrss] main{margin:14px auto}
+html.embed[data-mod=pgrss] button{background:#1f5fa8}
+html.embed[data-mod=pgrss] nav button{background:transparent;color:#234866}
+html.embed[data-mod=pgrss] nav button.active{background:#123e70;color:#fff}
+html.embed[data-mod=pgrss] .secondary{background:#e5edf4;color:#153b61}
+html.embed[data-mod=pgrss] .danger{background:#9c3030}

@@ -31,7 +31,7 @@
   }).catch(function () {});
   // Abrir direto por link (#fluxo, #mod-rh, #dashboard...)
   var h = (location.hash || '').replace('#', '');
-  if (h === 'fluxo' || h === 'rh' || h === 'epi' || h === 'central') h = 'mod-' + h;
+  if (h === 'fluxo' || h === 'rh' || h === 'epi' || h === 'central' || h === 'pgrss') h = 'mod-' + h;
   if (h && document.getElementById(h) && document.getElementById(h).classList.contains('tab') && h !== 'home') window.goTab(h);
   else afterTab('home');
 })();
