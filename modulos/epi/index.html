@@ -857,8 +857,17 @@ $('btnFicha').onclick=async()=>{
 /* ---------- importar lista de funcionários (CSV / Excel) ---------- */
 $('buscaFunc').oninput=()=>desenhar();
 $('soSemRosto').onchange=()=>desenhar();
+async function textoArquivo(file){
+  const buf=await file.arrayBuffer();
+  let t=new TextDecoder('utf-8').decode(buf);
+  if(t.indexOf('�')>=0)t=new TextDecoder('windows-1252').decode(buf);   // CSV salvo pelo Excel (ANSI)
+  return t.replace(/^﻿/,'');
+}
 function lerCSVLista(t){
-  const sep=(t.split('\n')[0].match(/;/g)||[]).length>(t.split('\n')[0].match(/,/g)||[]).length?';':',';
+  t=t.replace(/^﻿/,'');
+  const l1=t.split(/\r?\n/).filter(x=>x.trim()).slice(0,15).join('\n');
+  const n=c=>(l1.match(new RegExp(c==='\t'?'\t':'\\'+c,'g'))||[]).length;
+  const sep=[';',',','\t'].sort((x,y)=>n(y)-n(x))[0];
   const out=[];let row=[],cur='',q=false;
   for(let i=0;i<t.length;i++){const c=t[i];
     if(q){if(c==='"'){if(t[i+1]==='"'){cur+='"';i++;}else q=false;}else cur+=c;}
@@ -867,11 +876,22 @@ function lerCSVLista(t){
     else cur+=c;}
   row.push(cur);if(row.some(x=>x!==''))out.push(row);return out;
 }
+function chaveCab(h){
+  const k=semNorm(String(h||'').replace(/^﻿/,'')).replace(/[º°.]/g,'').replace(/\s+/g,' ').trim();
+  if(/^(nome|nome completo|nome do (profissional|funcionario|colaborador|servidor)|profissional|funcionario|colaborador|servidor)$/.test(k)||/^nome\b/.test(k))return 'nome';
+  if(/^(matricula|mat|n matricula|numero da matricula|registro|re|id funcional)$/.test(k)||/^matricula/.test(k))return 'matricula';
+  if(/^(funcao|cargo|cargo descricao|descricao do cargo|ocupacao)$/.test(k))return 'funcao';
+  if(/^(setor|departamento|area|lotacao|coordenacao)$/.test(k))return 'setor';
+  if(k==='unidade')return 'unidade';
+  return null;
+}
 function linhasParaFuncs(linhas){
-  if(linhas.length<2)return [];
-  const mapa={nome:'nome','nome completo':'nome',matricula:'matricula',mat:'matricula',funcao:'funcao',cargo:'funcao',setor:'setor',unidade:'unidade'};
-  const cab=linhas[0].map(h=>mapa[semNorm(h).replace(/[º°]/g,'o').replace(/\s+/g,' ')]||null);
-  return linhas.slice(1).map(l=>{const r={};cab.forEach((k,i)=>{if(k&&!r[k])r[k]=String(l[i]==null?'':l[i]).trim();});
+  // procura a linha de cabeçalho entre as primeiras 15 (pode haver título antes)
+  let h=-1;
+  for(let i=0;i<Math.min(15,linhas.length);i++){if(linhas[i].some(c=>chaveCab(c)==='nome')){h=i;break;}}
+  if(h<0)return [];
+  const cab=linhas[h].map(chaveCab);
+  return linhas.slice(h+1).map(l=>{const r={};cab.forEach((k,i)=>{if(k&&!r[k])r[k]=String(l[i]==null?'':l[i]).trim();});
     if(!r.nome)return null;
     return {nome:r.nome,matricula:r.matricula||null,funcao:r.funcao||null,setor:r.setor||null,unidade:r.unidade||UNIDADE_PADRAO};
   }).filter(Boolean);
@@ -883,14 +903,14 @@ $('btnLista').onclick=async()=>{
   $('btnLista').disabled=true;$('listaInfo').textContent='Lendo arquivo...';
   try{
     let linhas;
-    if(/\.csv$/i.test(file.name))linhas=lerCSVLista(await file.text());
+    if(/\.csv$/i.test(file.name))linhas=lerCSVLista(await textoArquivo(file));
     else{
       if(typeof XLSX==='undefined')throw new Error('Biblioteca de Excel não carregou. Use arquivo .csv ou verifique a internet.');
       const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});
       linhas=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
     }
     const regs=linhasParaFuncs(linhas);
-    if(!regs.length)throw new Error('Nenhum funcionário válido no arquivo. Confira se a primeira linha tem a coluna "Nome".');
+    if(!regs.length)throw new Error('Nenhum funcionário válido no arquivo. Colunas encontradas na 1ª linha: ['+((linhas[0]||[]).map(x=>String(x).trim()).join(' | ')||'vazia')+']. É preciso uma coluna "Nome".');
     const mats=new Set(funcs.map(f=>f.matricula).filter(Boolean).map(String));
     const nomes=new Set(funcs.map(f=>semNorm(f.nome)));
     const vistos=new Set(),novos=[];
