@@ -29,9 +29,9 @@
   if (window.UPA) UPA.ready().then(function (s) {
     if (lo && s && s.user) lo.innerHTML = '<span>⎋</span> Sair <small style="opacity:.7;font-size:10px;display:block;word-break:break-all">' + s.user.email + '</small>';
   }).catch(function () {});
-  // Abrir direto por link (#fluxo, #mod-rh, #dashboard...)
+  // Abrir direto por link (#fluxo, #dashboard...)
   var h = (location.hash || '').replace('#', '');
-  if (h === 'fluxo' || h === 'rh' || h === 'epi' || h === 'central' || h === 'pgrss') h = 'mod-' + h;
+  if (h === 'fluxo' || h === 'epi' || h === 'central' || h === 'pgrss') h = 'mod-' + h;
   if (h && document.getElementById(h) && document.getElementById(h).classList.contains('tab') && h !== 'home') window.goTab(h);
   else afterTab('home');
 })();
