@@ -464,13 +464,16 @@ async function importarMtr(file) {
       data: dataBR(g(r, 'col')) || dataBR(g(r, 'tr')) || dataBR(g(r, 'rec')) || dataBR(g(r, 'em')), empresa: g(r, 'transp'), mtr: g(r, 'mtr'), grupo,
       kg: String(Math.round(t * 1000)), placa: g(r, 'placa'), motorista: g(r, 'mot'),
       destino: [g(r, 'dest'), g(r, 'tec')].filter(Boolean).join(' — '), cdf: g(r, 'cdf').replace(/^Seq\..*/, ''), cdfData: dataBR(g(r, 'cdfd')),
-      obs: (un ? `Importado do relatório de fechamento da coletora: ${qtd} caçamba(s)/contêiner(es) × ${fator} kg. ` : 'Importado do relatório de MTR (peso recebido pelo destinador). ') + (g(r, 'acond') ? 'Acondicionamento: ' + g(r, 'acond') + '.' : ''), origem: 'importacao-mtr'
+      obs: (un ? `Importado do relatório de fechamento da coletora: ${qtd} caçamba(s)/contêiner(es) × ${fator} kg. ` : 'Importado do relatório de MTR (peso recebido pelo destinador). ') + (g(r, 'acond') ? 'Acondicionamento: ' + g(r, 'acond') + '.' : ''), origem: un ? 'importacao-fechamento' : 'importacao-mtr'
     });
   });
   const ign = rows.length - rec.length;
+  // o relatório final da coletora substitui as coletas que vieram antes dos manifestos MTR (somente as importadas; lançamentos manuais ficam)
+  const velhos = fator ? D.coletas.filter(x => x.origem === 'importacao-mtr') : [];
   if (!novos.length) { notice(`Nada a importar: ${rec.length} linha(s) recebida(s) no arquivo${rep ? ', todas já lançadas' : ''}. Ignoradas ${ign} cancelada(s)/salva(s).`); return; }
   const soma = novos.reduce((s, x) => s + num(x.kg), 0);
-  if (!confirm(`${rows.length} linha(s) no arquivo.\n• ${novos.length} coleta(s) recebida(s) serão lançadas (${soma.toLocaleString('pt-BR')} kg no total)\n• ${rep} já existente(s) serão ignoradas\n• ${ign} cancelada(s)/salva(s) NÃO serão importadas${semPeso ? '\n• ' + semPeso + ' sem peso recebido' : ''}\n\nContinuar?`)) return;
+  if (!confirm(`${rows.length} linha(s) no arquivo.\n• ${novos.length} coleta(s) recebida(s) serão lançadas (${soma.toLocaleString('pt-BR')} kg no total)\n• ${rep} já existente(s) serão ignoradas\n• ${ign} cancelada(s)/salva(s) NÃO serão importadas${semPeso ? '\n• ' + semPeso + ' sem peso recebido' : ''}${velhos.length ? '\n• ' + velhos.length + ' coleta(s) importadas antes dos manifestos MTR serão REMOVIDAS (o relatório final da coletora substitui)' : ''}\n\nContinuar?`)) return;
+  for (const v of velhos) await del('coletas', v.id);
   for (const o of novos) await put('coletas', o);
   notice(`Importadas ${novos.length} coleta(s) (${soma.toLocaleString('pt-BR')} kg). Cadastre a empresa "${novos[0].empresa}" em Empresas e licenças, se ainda não estiver.`);
   await render();
