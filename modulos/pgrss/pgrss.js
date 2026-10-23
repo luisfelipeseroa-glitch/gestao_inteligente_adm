@@ -442,7 +442,8 @@ async function importarMtr(file) {
     const grupo = g(r, 'cls').replace(/^grupo\s*/i, '').trim() || '';
     const key = g(r, 'mtr') + '|' + grupo;
     if (ja.has(key) || vistos.has(key)) { rep++; return; } vistos.add(key);
-    const t = num(g(r, 'qr')); if (!t) semPeso++;
+    const kgCol = c.qr >= 0 && H[c.qr + 1] === 'kg/l' ? num(r[c.qr + 1]) : 0;   // peso real em kg/L, quando o arquivo traz
+    const t = kgCol ? kgCol / 1000 : num(g(r, 'qr')); if (!t) semPeso++;
     novos.push({
       data: dataBR(g(r, 'tr')) || dataBR(g(r, 'rec')) || dataBR(g(r, 'em')), empresa: g(r, 'transp'), mtr: g(r, 'mtr'), grupo,
       kg: String(Math.round(t * 1000)), placa: g(r, 'placa'), motorista: g(r, 'mot'),
