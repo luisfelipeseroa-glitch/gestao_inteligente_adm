@@ -438,25 +438,33 @@ async function importarMtr(file) {
   const hi = L.findIndex(r => r.some(c => semAc(c) === 'mtr n' || /^mtr n/.test(semAc(c))));
   if (hi < 0) { notice('Não achei o cabeçalho "MTR Nº". Colunas lidas na 1ª linha: [' + (L[0] || []).join(' | ') + ']', true); return; }
   const H = L[hi].map(semAc), ix = n => H.findIndex(h => h === semAc(n));
-  const c = { mtr: ix('MTR Nº'), sit: ix('Situação'), tr: ix('Data de Transporte') >= 0 ? ix('Data de Transporte') : ix('Data do transporte'), col: ix('Data da Coleta'), em: ix('Data de Emissão'), rec: ix('Data de Recebimento'), transp: ix('Transportador Nome'), dest: ix('Destinador Nome'), mot: ix('Motorista'), placa: ix('Placa'), cls: ix('Classe'), tec: ix('Tecnologia'), acond: ix('Acondicionamento'), qr: ix('Qt. recebida (t)'), qi: ix('Qt. Indicada (t)'), cdf: ix('Número do CDF'), cdfd: ix('Data de Emissão do CDF') };
+  const c = { mtr: ix('MTR Nº'), sit: ix('Situação'), tr: ix('Data de Transporte') >= 0 ? ix('Data de Transporte') : ix('Data do transporte'), col: ix('Data da Coleta'), em: ix('Data de Emissão'), rec: ix('Data de Recebimento'), transp: ix('Transportador Nome'), dest: ix('Destinador Nome'), mot: ix('Motorista'), placa: ix('Placa'), cls: ix('Classe'), tec: ix('Tecnologia'), acond: ix('Acondicionamento'), qr: ix('Qt. recebida (t)'), qi: ix('Qt. Indicada (t)'), cdf: ix('Número do CDF'), cdfd: ix('Data de Emissão do CDF'), obs: ix('Observações do Gerador') };
   if (c.mtr < 0 || c.sit < 0 || c.cls < 0) { notice('O arquivo não tem as colunas esperadas (MTR Nº, Situação, Classe).', true); return; }
   const g = (r, k) => (c[k] >= 0 && r[c[k]] != null ? String(r[c[k]]).trim().replace(/^="?|"$/g, '') : '');
   const rows = L.slice(hi + 1).filter(r => g(r, 'mtr'));
-  const rec = rows.filter(r => /recebido/i.test(g(r, 'sit')));
+  const rec = rows.filter(r => !/cancel|salvo/i.test(g(r, 'sit')));   // recebidos e relatórios de fechamento da coletora
   const D = await loadAll();
+  // relatório de fechamento da coletora: a quantidade vem em caçambas/contêineres, não em kg
+  const porUnid = r => /relat/i.test(g(r, 'sit')) || /cont[eê]iner|ca[cç]amba/i.test(g(r, 'obs'));
+  let fator = 0;
+  if (rec.some(porUnid)) {
+    const v = prompt('Este arquivo traz a quantidade em CAÇAMBAS / CONTÊINERES (não em kg).\nQuantos kg vale cada unidade?\n(Caçamba de 100 L = 100)', '100');
+    if (v == null) return;
+    fator = num(v); if (fator <= 0) { notice('Valor inválido. Importação cancelada.', true); return; }
+  }
   const ja = new Set(D.coletas.map(x => String(x.mtr || '').trim() + '|' + String(x.grupo || '').trim()));
   const novos = [], vistos = new Set(); let rep = 0, semPeso = 0;
   rec.forEach(r => {
     const grupo = g(r, 'cls').replace(/^grupo\s*/i, '').trim() || '';
     const key = g(r, 'mtr') + '|' + grupo;
     if (ja.has(key) || vistos.has(key)) { rep++; return; } vistos.add(key);
-    const kgCol = c.qr >= 0 && H[c.qr + 1] === 'kg/l' ? num(r[c.qr + 1]) : 0;   // peso real em kg/L, quando o arquivo traz
-    const t = kgCol ? kgCol / 1000 : num(g(r, 'qr')); if (!t) semPeso++;
+    const un = porUnid(r), kgCol = c.qr >= 0 && H[c.qr + 1] === 'kg/l' ? num(r[c.qr + 1]) : 0;   // peso real em kg/L, quando o arquivo traz
+    const qtd = un ? (kgCol || num(g(r, 'qr')) * 1000) : 0, t = un ? qtd * fator / 1000 : (kgCol ? kgCol / 1000 : num(g(r, 'qr'))); if (!t) semPeso++;
     novos.push({
       data: dataBR(g(r, 'col')) || dataBR(g(r, 'tr')) || dataBR(g(r, 'rec')) || dataBR(g(r, 'em')), empresa: g(r, 'transp'), mtr: g(r, 'mtr'), grupo,
       kg: String(Math.round(t * 1000)), placa: g(r, 'placa'), motorista: g(r, 'mot'),
-      destino: [g(r, 'dest'), g(r, 'tec')].filter(Boolean).join(' — '), cdf: g(r, 'cdf'), cdfData: dataBR(g(r, 'cdfd')),
-      obs: 'Importado do relatório de MTR (peso recebido pelo destinador). ' + (g(r, 'acond') ? 'Acondicionamento: ' + g(r, 'acond') + '.' : ''), origem: 'importacao-mtr'
+      destino: [g(r, 'dest'), g(r, 'tec')].filter(Boolean).join(' — '), cdf: g(r, 'cdf').replace(/^Seq\..*/, ''), cdfData: dataBR(g(r, 'cdfd')),
+      obs: (un ? `Importado do relatório de fechamento da coletora: ${qtd} caçamba(s)/contêiner(es) × ${fator} kg. ` : 'Importado do relatório de MTR (peso recebido pelo destinador). ') + (g(r, 'acond') ? 'Acondicionamento: ' + g(r, 'acond') + '.' : ''), origem: 'importacao-mtr'
     });
   });
   const ign = rows.length - rec.length;
