@@ -110,7 +110,7 @@ const ENT = {
       { k: 'destino', l: 'Tratamento / destino final' }, { k: 'cdf', l: 'Nº do CDF (certificado de destinação)' }, { k: 'cdfData', l: 'Data do CDF', t: 'date' },
       { k: 'obs', l: 'Observações', t: 'textarea', full: 1 }],
     cols: [['Data', r => fd(r.data)], ['Empresa', r => esc(r.empresa)], ['MTR', r => esc(r.mtr)], ['Grupo', r => esc(r.grupo)], ['kg', r => kg(r.kg)], ['Destino', r => esc(r.destino)], ['CDF', r => r.cdf ? esc(r.cdf) + (r.cdfData ? '<br><small>' + fd(r.cdfData) + '</small>' : '') : '<span class="pill warn">Pendente</span>']],
-    extra: '<button type="button" class="secondary" data-act="impMtr">Importar relatório de MTR (CSV)</button><input type="file" id="fileMtr" class="hidden">',
+    extra: '<button type="button" class="secondary" data-act="impMtr">Importar relatório de MTR (CSV ou Excel)</button><input type="file" id="fileMtr" class="hidden">',
     rodape: l => `Total do filtro: <b>${kg(l.reduce((s, r) => s + num(r.kg), 0))} kg</b> em ${l.length} coleta(s).`
   },
   treinos: {
@@ -423,14 +423,22 @@ function csvLinhas(t) {
 const dataBR = d => { const m = String(d || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : ''; };
 const semAc = t => String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 async function importarMtr(file) {
-  if (!/\.csv$/i.test(file.name)) { notice('Escolha o arquivo .csv exportado do sistema de MTR.', true); return; }
-  const buf = await file.arrayBuffer();
-  let t = new TextDecoder('utf-8').decode(buf); if (t.indexOf('�') >= 0) t = new TextDecoder('windows-1252').decode(buf);
-  const L = csvLinhas(t);
+  if (!/\.(csv|xlsx|xls)$/i.test(file.name)) { notice('Escolha o relatório de MTR em .csv ou .xlsx.', true); return; }
+  let L;
+  if (/\.csv$/i.test(file.name)) {
+    const buf = await file.arrayBuffer();
+    let t = new TextDecoder('utf-8').decode(buf); if (t.indexOf('\uFFFD') >= 0) t = new TextDecoder('windows-1252').decode(buf);
+    L = csvLinhas(t);
+  } else {
+    if (typeof XLSX === 'undefined') { notice('A biblioteca de Excel não carregou. Use o arquivo .csv ou verifique a internet.', true); return; }
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+    const dd = v => v instanceof Date ? `${String(v.getUTCDate()).padStart(2, '0')}/${String(v.getUTCMonth() + 1).padStart(2, '0')}/${v.getUTCFullYear()}` : v;
+    L = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' }).map(r => r.map(v => String(dd(v) == null ? '' : dd(v)))).filter(r => r.some(x => x.trim() !== ''));
+  }
   const hi = L.findIndex(r => r.some(c => semAc(c) === 'mtr n' || /^mtr n/.test(semAc(c))));
   if (hi < 0) { notice('Não achei o cabeçalho "MTR Nº". Colunas lidas na 1ª linha: [' + (L[0] || []).join(' | ') + ']', true); return; }
   const H = L[hi].map(semAc), ix = n => H.findIndex(h => h === semAc(n));
-  const c = { mtr: ix('MTR Nº'), sit: ix('Situação'), tr: ix('Data de Transporte'), em: ix('Data de Emissão'), rec: ix('Data de Recebimento'), transp: ix('Transportador Nome'), dest: ix('Destinador Nome'), mot: ix('Motorista'), placa: ix('Placa'), cls: ix('Classe'), tec: ix('Tecnologia'), acond: ix('Acondicionamento'), qr: ix('Qt. recebida (t)'), qi: ix('Qt. Indicada (t)'), cdf: ix('Número do CDF'), cdfd: ix('Data de Emissão do CDF') };
+  const c = { mtr: ix('MTR Nº'), sit: ix('Situação'), tr: ix('Data de Transporte') >= 0 ? ix('Data de Transporte') : ix('Data do transporte'), col: ix('Data da Coleta'), em: ix('Data de Emissão'), rec: ix('Data de Recebimento'), transp: ix('Transportador Nome'), dest: ix('Destinador Nome'), mot: ix('Motorista'), placa: ix('Placa'), cls: ix('Classe'), tec: ix('Tecnologia'), acond: ix('Acondicionamento'), qr: ix('Qt. recebida (t)'), qi: ix('Qt. Indicada (t)'), cdf: ix('Número do CDF'), cdfd: ix('Data de Emissão do CDF') };
   if (c.mtr < 0 || c.sit < 0 || c.cls < 0) { notice('O arquivo não tem as colunas esperadas (MTR Nº, Situação, Classe).', true); return; }
   const g = (r, k) => (c[k] >= 0 && r[c[k]] != null ? String(r[c[k]]).trim().replace(/^="?|"$/g, '') : '');
   const rows = L.slice(hi + 1).filter(r => g(r, 'mtr'));
@@ -445,7 +453,7 @@ async function importarMtr(file) {
     const kgCol = c.qr >= 0 && H[c.qr + 1] === 'kg/l' ? num(r[c.qr + 1]) : 0;   // peso real em kg/L, quando o arquivo traz
     const t = kgCol ? kgCol / 1000 : num(g(r, 'qr')); if (!t) semPeso++;
     novos.push({
-      data: dataBR(g(r, 'tr')) || dataBR(g(r, 'rec')) || dataBR(g(r, 'em')), empresa: g(r, 'transp'), mtr: g(r, 'mtr'), grupo,
+      data: dataBR(g(r, 'col')) || dataBR(g(r, 'tr')) || dataBR(g(r, 'rec')) || dataBR(g(r, 'em')), empresa: g(r, 'transp'), mtr: g(r, 'mtr'), grupo,
       kg: String(Math.round(t * 1000)), placa: g(r, 'placa'), motorista: g(r, 'mot'),
       destino: [g(r, 'dest'), g(r, 'tec')].filter(Boolean).join(' — '), cdf: g(r, 'cdf'), cdfData: dataBR(g(r, 'cdfd')),
       obs: 'Importado do relatório de MTR (peso recebido pelo destinador). ' + (g(r, 'acond') ? 'Acondicionamento: ' + g(r, 'acond') + '.' : ''), origem: 'importacao-mtr'
