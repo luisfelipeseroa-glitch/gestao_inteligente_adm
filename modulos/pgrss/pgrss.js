@@ -110,6 +110,7 @@ const ENT = {
       { k: 'destino', l: 'Tratamento / destino final' }, { k: 'cdf', l: 'Nº do CDF (certificado de destinação)' }, { k: 'cdfData', l: 'Data do CDF', t: 'date' },
       { k: 'obs', l: 'Observações', t: 'textarea', full: 1 }],
     cols: [['Data', r => fd(r.data)], ['Empresa', r => esc(r.empresa)], ['MTR', r => esc(r.mtr)], ['Grupo', r => esc(r.grupo)], ['kg', r => kg(r.kg)], ['Destino', r => esc(r.destino)], ['CDF', r => r.cdf ? esc(r.cdf) + (r.cdfData ? '<br><small>' + fd(r.cdfData) + '</small>' : '') : '<span class="pill warn">Pendente</span>']],
+    extra: '<button type="button" class="secondary" data-act="impMtr">Importar relatório de MTR (CSV)</button><input type="file" id="fileMtr" class="hidden">',
     rodape: l => `Total do filtro: <b>${kg(l.reduce((s, r) => s + num(r.kg), 0))} kg</b> em ${l.length} coleta(s).`
   },
   treinos: {
@@ -402,6 +403,62 @@ async function gerar() {
 }
 
 /* ---------------- ações (cliques) ---------------- */
+
+/* ---------------- importar relatório de MTR (CSV do sistema de manifestos) ---------------- */
+function csvLinhas(t) {
+  t = t.replace(/^﻿/, '');
+  const prim = t.split(/\r?\n/).filter(x => x.trim()).slice(0, 5).join('\n');
+  const sep = [';', ',', '\t'].sort((a, b) => prim.split(b).length - prim.split(a).length)[0];
+  const out = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (q) { if (c === '"') { if (t[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true; else if (c === sep) { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && t[i + 1] === '\n') i++; row.push(cur); cur = ''; if (row.some(x => x.trim() !== '')) out.push(row); row = []; }
+    else cur += c;
+  }
+  row.push(cur); if (row.some(x => x.trim() !== '')) out.push(row);
+  return out;
+}
+const dataBR = d => { const m = String(d || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : ''; };
+const semAc = t => String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+async function importarMtr(file) {
+  if (!/\.csv$/i.test(file.name)) { notice('Escolha o arquivo .csv exportado do sistema de MTR.', true); return; }
+  const buf = await file.arrayBuffer();
+  let t = new TextDecoder('utf-8').decode(buf); if (t.indexOf('�') >= 0) t = new TextDecoder('windows-1252').decode(buf);
+  const L = csvLinhas(t);
+  const hi = L.findIndex(r => r.some(c => semAc(c) === 'mtr n' || /^mtr n/.test(semAc(c))));
+  if (hi < 0) { notice('Não achei o cabeçalho "MTR Nº". Colunas lidas na 1ª linha: [' + (L[0] || []).join(' | ') + ']', true); return; }
+  const H = L[hi].map(semAc), ix = n => H.findIndex(h => h === semAc(n));
+  const c = { mtr: ix('MTR Nº'), sit: ix('Situação'), tr: ix('Data de Transporte'), em: ix('Data de Emissão'), rec: ix('Data de Recebimento'), transp: ix('Transportador Nome'), dest: ix('Destinador Nome'), mot: ix('Motorista'), placa: ix('Placa'), cls: ix('Classe'), tec: ix('Tecnologia'), acond: ix('Acondicionamento'), qr: ix('Qt. recebida (t)'), qi: ix('Qt. Indicada (t)'), cdf: ix('Número do CDF'), cdfd: ix('Data de Emissão do CDF') };
+  if (c.mtr < 0 || c.sit < 0 || c.cls < 0) { notice('O arquivo não tem as colunas esperadas (MTR Nº, Situação, Classe).', true); return; }
+  const g = (r, k) => (c[k] >= 0 && r[c[k]] != null ? String(r[c[k]]).trim().replace(/^="?|"$/g, '') : '');
+  const rows = L.slice(hi + 1).filter(r => g(r, 'mtr'));
+  const rec = rows.filter(r => /recebido/i.test(g(r, 'sit')));
+  const D = await loadAll();
+  const ja = new Set(D.coletas.map(x => String(x.mtr || '').trim() + '|' + String(x.grupo || '').trim()));
+  const novos = [], vistos = new Set(); let rep = 0, semPeso = 0;
+  rec.forEach(r => {
+    const grupo = g(r, 'cls').replace(/^grupo\s*/i, '').trim() || '';
+    const key = g(r, 'mtr') + '|' + grupo;
+    if (ja.has(key) || vistos.has(key)) { rep++; return; } vistos.add(key);
+    const t = num(g(r, 'qr')); if (!t) semPeso++;
+    novos.push({
+      data: dataBR(g(r, 'tr')) || dataBR(g(r, 'rec')) || dataBR(g(r, 'em')), empresa: g(r, 'transp'), mtr: g(r, 'mtr'), grupo,
+      kg: String(Math.round(t * 1000)), placa: g(r, 'placa'), motorista: g(r, 'mot'),
+      destino: [g(r, 'dest'), g(r, 'tec')].filter(Boolean).join(' — '), cdf: g(r, 'cdf'), cdfData: dataBR(g(r, 'cdfd')),
+      obs: 'Importado do relatório de MTR (peso recebido pelo destinador). ' + (g(r, 'acond') ? 'Acondicionamento: ' + g(r, 'acond') + '.' : ''), origem: 'importacao-mtr'
+    });
+  });
+  const ign = rows.length - rec.length;
+  if (!novos.length) { notice(`Nada a importar: ${rec.length} linha(s) recebida(s) no arquivo${rep ? ', todas já lançadas' : ''}. Ignoradas ${ign} cancelada(s)/salva(s).`); return; }
+  const soma = novos.reduce((s, x) => s + num(x.kg), 0);
+  if (!confirm(`${rows.length} linha(s) no arquivo.\n• ${novos.length} coleta(s) recebida(s) serão lançadas (${soma.toLocaleString('pt-BR')} kg no total)\n• ${rep} já existente(s) serão ignoradas\n• ${ign} cancelada(s)/salva(s) NÃO serão importadas${semPeso ? '\n• ' + semPeso + ' sem peso recebido' : ''}\n\nContinuar?`)) return;
+  for (const o of novos) await put('coletas', o);
+  notice(`Importadas ${novos.length} coleta(s) (${soma.toLocaleString('pt-BR')} kg). Cadastre a empresa "${novos[0].empresa}" em Empresas e licenças, se ainda não estiver.`);
+  await render();
+}
+
 const acoes = {
   async edit(d) { ed[view] = d.id; pend[view] = []; await render(); window.scrollTo(0, 0); },
   async cancelar() { ed[view] = null; await render(); },
@@ -430,6 +487,7 @@ const acoes = {
     for (const s of PGRSS_SETORES) { if (ja.has(s[0].toLowerCase())) continue; await put('setores', { nome: s[0], grupos: s[1], exemplos: s[2], acond: s[3], freq: 'A cada turno' }); n++; }
     notice(n ? `${n} setor(es) padrão incluído(s). Revise grupos, acondicionamento e estimativas de cada um.` : 'Os setores padrão já estão cadastrados.'); await render();
   },
+  async impMtr() { const f = $('fileMtr'); f.value = ''; f.click(); },
   async gerar() { await gerar(); },
   async imprimir() { await gerar(); setTimeout(() => window.print(), 150); }
 };
@@ -456,7 +514,8 @@ function ligar() {
   });
   c.addEventListener('change', async e => {
     const t = e.target;
-    if (t.id === 'flt') { flt[view] = t.value; await render(); }
+    if (t.id === 'fileMtr') { if (t.files[0]) { try { await importarMtr(t.files[0]); } catch (err) { notice(UPA.msg(err), true); } } }
+    else if (t.id === 'flt') { flt[view] = t.value; await render(); }
     else if (t.id === 'selMes') { if (t.value) { selMes = t.value; await render(); } }
     else if (t.id === 'impTipo') { imp.tipo = t.value; $('printRoot').classList.add('hidden'); await render(); }
     else if (t.id === 'impDe') imp.de = t.value || imp.de; else if (t.id === 'impAte') imp.ate = t.value || imp.ate; else if (t.id === 'impMes') imp.mes = t.value || imp.mes;
