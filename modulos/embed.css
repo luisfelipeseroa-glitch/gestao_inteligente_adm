@@ -54,3 +54,18 @@ html.embed[data-mod=pgrss] nav button{background:transparent;color:#234866}
 html.embed[data-mod=pgrss] nav button.active{background:#123e70;color:#fff}
 html.embed[data-mod=pgrss] .secondary{background:#e5edf4;color:#153b61}
 html.embed[data-mod=pgrss] .danger{background:#9c3030}
+
+/* ---------- POP ---------- */
+html.embed[data-mod=pop]{background:#f3f7fc}
+html.embed[data-mod=pop] body{background:#f3f7fc}
+html.embed[data-mod=pop] header,html.embed[data-mod=pop] footer{display:none}
+html.embed[data-mod=pop] nav{border-radius:12px;margin:14px 16px 0;padding:8px}
+html.embed[data-mod=pop] main{margin:14px auto}
+html.embed[data-mod=pop] button{background:#1f5fa8}
+html.embed[data-mod=pop] nav button{background:transparent;color:#234866}
+html.embed[data-mod=pop] nav button.active{background:#123e70;color:#fff}
+html.embed[data-mod=pop] .secondary{background:#e5edf4;color:#153b61}
+html.embed[data-mod=pop] .danger{background:#9c3030}
+html.embed[data-mod=pop] .tema{background:#f4f8fc;color:#17314d}
+html.embed[data-mod=pop] .tema.on{background:#e4effa}
+html.embed[data-mod=pop] .rw .x{background:#f3d6d3;color:#8a1c14}

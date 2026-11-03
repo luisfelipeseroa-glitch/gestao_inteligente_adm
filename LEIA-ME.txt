@@ -8,6 +8,7 @@ Um único site com o layout do app de manutenção (cabeçalho, menu azul, rodap
   - Gestão de RH                                                           -> modulos/rh/
   - Entrega de EPI (reconhecimento facial / QR)                            -> modulos/epi/
   - PGRSS · Resíduos de serviços de saúde (plano, pesagens, coletas, licenças) -> modulos/pgrss/
+  - POP · Procedimentos Operacionais Padrão (questionário, IA, assinatura eletrônica) -> modulos/pop/
 
 PUBLICAR NO GITHUB PAGES
 1. Faça backup do que está publicado hoje.
@@ -15,7 +16,7 @@ PUBLICAR NO GITHUB PAGES
 3. Abra o endereço do site. O menu lateral dá acesso a todos os módulos.
 
 LINKS DIRETOS
-  /#fluxo   /#rh   /#epi   /#central   /#pgrss   /#dashboard
+  /#fluxo   /#rh   /#epi   /#central   /#pgrss   /#pop   /#dashboard
 Cada módulo também abre sozinho (botão "Abrir em nova aba"):
   modulos/rh/index.html     (portal do servidor e acesso administrativo)
   modulos/epi/index.html    (quiosque de entrega de EPI)
@@ -64,3 +65,29 @@ PGRSS (RESÍDUOS DE SERVIÇOS DE SAÚDE)
   "Carregar setores padrão"). Depois: cadastrar as empresas e licenças e lançar pesagens, coletas, treinamentos e inspeções.
 - Aba "Imprimir documentos": PGRSS completo (capa, sumário, seções e anexos, com assinaturas) e relatório mensal.
 - Os textos-padrão seguem a RDC ANVISA nº 222/2018, mas devem ser revisados pelo responsável técnico antes de imprimir.
+
+
+POP · PROCEDIMENTOS OPERACIONAIS PADRÃO (modulos/pop/)
+O que faz: você escolhe o tema, responde um questionário curto e o sistema monta o POP completo no modelo da unidade
+(cabeçalho POP.ADM.xxx, quadro de aprovações, Introdução, Objetivo, Fluxos, Situações críticas, Checklist, Referências).
+Você revisa/edita, envia para assinatura, cada coordenador assina com o próprio login e o PDF sai com carimbo e QR Code.
+
+CONFIGURAÇÃO (uma vez só)
+1. SQL Editor do Supabase > cole sql/pop.sql > Run. (Cria signatários, assinaturas e a conferência pública do QR.)
+2. Entre no portal > POP > Signatários > cadastre PRIMEIRO você (o primeiro cadastro vira administrador) e depois os outros
+   coordenadores. O e-mail deve ser o MESMO do login de cada um no Supabase (Authentication > Users).
+3. IA (opcional, recomendado): instale a CLI do Supabase e rode, na pasta do projeto:
+     supabase login
+     supabase link --project-ref dzvnannnwvrdvdoxgbeo
+     supabase secrets set ANTHROPIC_API_KEY=sk-ant-...        (chave da API do Claude; fica só no Supabase)
+     supabase functions deploy pop-gerar
+   Sem isso o botão continua funcionando: gera com o modelo-padrão (você completa o texto na tela de edição).
+
+COMO ASSINA
+- Rascunho > "Enviar para assinatura" (texto trava e recebe um código SHA-256) > cada signatário abre o POP, clica em
+  "Assinar agora" e confirma a senha. O banco grava nome, matrícula, cargo, data/hora e um código; ninguém consegue editar ou
+  apagar assinatura. Quando todos assinam, o POP fica "Vigente"; a revisão anterior vira "Obsoleta".
+- Para mudar um POP vigente: "Criar nova revisão" (as assinaturas anteriores não valem para o texto novo).
+- QR Code do documento abre modulos/pop/verificar.html (pública, sem login) e mostra quem assinou e se é a versão vigente.
+- Isto é assinatura eletrônica simples (identificação por login + senha + registro). Para validade jurídica ampla (gov.br /
+  ICP-Brasil) assine o PDF por fora, se a SMS exigir.
