@@ -44,6 +44,10 @@ async function loadAll() {
   const ks = Object.keys(COL), v = await Promise.all(ks.map(all)), D = {};
   ks.forEach((k, i) => { D[k] = v[i]; });
   D.plano = D.plano.find(p => p.id === PLANO_ID) || null;
+  // Meses sem pesagem diária: a geração é estimada pelo que foi coletado no mês (relatório final da coletora)
+  const comPes = new Set(D.pesagens.map(r => mesDe(r.data)));
+  D.mesesPorColeta = new Set();
+  D.pesEf = D.pesagens.concat(D.coletas.filter(c => c.data && !comPes.has(mesDe(c.data)) && grupoDeColeta(c.grupo)).map(c => { D.mesesPorColeta.add(mesDe(c.data)); return { id: 'c-' + c.id, data: c.data, setor: 'Geral / abrigo externo', [grupoDeColeta(c.grupo)]: num(c.kg), deColeta: true }; }));
   return D;
 }
 const planoPadrao = () => ({ id: PLANO_ID, unidade: 'UPA Rocinha', tipo: 'Unidade de Pronto Atendimento (UPA 24 h)', endereco: 'Estrada da Gávea, 522 - Rocinha - Rio de Janeiro/RJ - CEP 22.451-265', tel: '(21) 3613-8280', email: 'gerencia.uparocinha@gmail.com', horario: '24 horas, todos os dias', versao: '1' });
@@ -253,7 +257,7 @@ function prontidao(D) {
   ];
 }
 async function viewPainel() {
-  const D = await loadAll(), s = somaMes(D.pesagens, selMes), atend = atendDoMes(D, selMes);
+  const D = await loadAll(), s = somaMes(D.pesEf, selMes), atend = atendDoMes(D, selMes);
   const colMes = D.coletas.filter(c => mesDe(c.data) === selMes).reduce((t, c) => t + num(c.kg), 0);
   const al = alertas(D), pr = prontidao(D), nok = pr.filter(x => x[1]).length;
   const insp = D.inspec.filter(r => mesDe(r.data) === selMes).map(confInsp).filter(c => c.p != null);
@@ -270,7 +274,8 @@ async function viewPainel() {
    <div class="stat">Treinamentos (12 meses)<strong>${tr12.length}</strong>${tr12.reduce((t, x) => t + num(x.ch), 0)} h</div>
    <div class="stat">Conformidade das inspeções<strong>${mInsp == null ? '—' : pct(mInsp)}</strong></div>
   </div>
-  <div class="two"><div><h3>Geração por grupo em ${fm(selMes)}</h3>${barras(GRUPOS_PES.map(g => [g[1], s[g[0]]]))}</div><div><h3>Total mensal (últimos 6 meses)</h3>${barras(meses6.map(m => [fm(m), somaMes(D.pesagens, m).total]))}</div></div>
+  ${D.mesesPorColeta.has(selMes) ? '<p class="muted">Sem pesagem diária neste mês: a geração mostrada foi estimada pelo peso coletado (relatório da coletora).</p>' : ''}
+  <div class="two"><div><h3>Geração por grupo em ${fm(selMes)}</h3>${barras(GRUPOS_PES.map(g => [g[1], s[g[0]]]))}</div><div><h3>Total mensal (últimos 6 meses)</h3>${barras(meses6.map(m => [fm(m), somaMes(D.pesEf, m).total]))}</div></div>
   <div class="two"><div><h3>Alertas</h3>${al.length ? al.map(a => `<div class="alert ${a[0]}"><b>${a[0] === 'bad' ? '⛔' : '⚠'}</b><span>${esc(a[1])} <a href="#" data-act="go" data-v="${a[2]}">abrir</a></span></div>`).join('') : '<div class="alert ok"><b>✔</b><span>Nenhum alerta no momento.</span></div>'}</div>
   <div><h3>Pronto para fiscalização? (${nok}/${pr.length})</h3>${pr.map(x => `<div class="alert ${x[1] ? 'ok' : 'warn'}"><b>${x[1] ? '✔' : '○'}</b><span>${esc(x[0])}${x[1] ? '' : ` <a href="#" data-act="go" data-v="${x[2]}">preencher</a>`}</span></div>`).join('')}</div></div></section>`;
 }
@@ -325,7 +330,7 @@ function envelope(D, titulo, corpo) {
 function assinaturas(P) {
   return `<div class="sign"><div><br><br>${esc(P.rtNome) || '&nbsp;'}<br><b>Responsável Técnico pelo PGRSS</b><br>${esc(P.rtConselho)} ${esc(P.rtRegistro)}${P.rtArt ? ' · ART/TRT ' + esc(P.rtArt) : ''}</div><div><br><br>${esc(P.dirNome) || '&nbsp;'}<br><b>${esc(P.dirCargo) || 'Direção da unidade'}</b></div>${P.coordNome ? `<div><br><br>${esc(P.coordNome)}<br><b>${esc(P.coordCargo) || 'Coordenação do PGRSS'}</b></div>` : ''}</div>`;
 }
-const resumoMeses = (D, meses) => meses.map(m => { const s = somaMes(D.pesagens, m), a = atendDoMes(D, m); return [fm(m), kg(s.kgA), kg(s.kgB), kg(s.kgD), kg(s.kgR), kg(s.kgE), '<b>' + kg(s.total) + '</b>', s.total ? pct(s.kgA / s.total * 100) : '—', a ? String(a) : '—', a && s.total ? (s.total / a).toLocaleString('pt-BR', { maximumFractionDigits: 3 }) : '—']; });
+const resumoMeses = (D, meses) => meses.map(m => { const s = somaMes(D.pesEf, m), a = atendDoMes(D, m); return [fm(m), kg(s.kgA), kg(s.kgB), kg(s.kgD), kg(s.kgR), kg(s.kgE), '<b>' + kg(s.total) + '</b>', s.total ? pct(s.kgA / s.total * 100) : '—', a ? String(a) : '—', a && s.total ? (s.total / a).toLocaleString('pt-BR', { maximumFractionDigits: 3 }) : '—']; });
 const HRES = ['Mês', 'A (kg)', 'B (kg)', 'D comum (kg)', 'D recicl. (kg)', 'E (kg)', 'Total (kg)', '% Grupo A', 'Atend.', 'kg/atend.'];
 
 function buildPGRSS(D) {
@@ -368,14 +373,14 @@ function buildPGRSS(D) {
   return envelope(D, 'Plano de Gerenciamento de Resíduos de Serviços de Saúde — PGRSS', corpo);
 }
 function buildMensal(D) {
-  const P = D.plano || planoPadrao(), m = imp.mes, ant = addMeses(m, -1), s = somaMes(D.pesagens, m), sa = somaMes(D.pesagens, ant), a = atendDoMes(D, m);
+  const P = D.plano || planoPadrao(), m = imp.mes, ant = addMeses(m, -1), s = somaMes(D.pesEf, m), sa = somaMes(D.pesEf, ant), a = atendDoMes(D, m);
   const dm = r => mesDe(r.data) === m;
-  const setores = {}; D.pesagens.filter(dm).forEach(r => { const n = r.setor || 'Geral / abrigo externo'; const o = setores[n] = setores[n] || { kgA: 0, kgB: 0, kgD: 0, kgR: 0, kgE: 0 }; GRUPOS_PES.forEach(g => { o[g[0]] += num(r[g[0]]); }); });
+  const setores = {}; D.pesEf.filter(dm).forEach(r => { const n = r.setor || 'Geral / abrigo externo'; const o = setores[n] = setores[n] || { kgA: 0, kgB: 0, kgD: 0, kgR: 0, kgE: 0 }; GRUPOS_PES.forEach(g => { o[g[0]] += num(r[g[0]]); }); });
   const col = D.coletas.filter(dm).sort((x, y) => x.data.localeCompare(y.data)), tr = D.treinos.filter(dm), oc = D.ocorr.filter(dm), ins = D.inspec.filter(dm);
   const dif = (x, y) => y ? ((x - y) / y * 100 >= 0 ? '+' : '') + pct((x - y) / y * 100) : '—';
   const corpo = `<h2 style="margin-top:0">Relatório mensal do PGRSS — ${fm(m)}</h2>
   ${kv([['Unidade', P.unidade], ['Competência', fm(m)], ['Responsável técnico', [P.rtNome, P.rtConselho, P.rtRegistro].filter(Boolean).join(' · ')], ['Atendimentos no mês', a || '—']])}
-  <h2>1. Geração por grupo</h2>${tbl(['Grupo', 'Mês atual (kg)', '% do total', 'Mês anterior (kg)', 'Variação'], GRUPOS_PES.map(g => [g[1], kg(s[g[0]]), s.total ? pct(s[g[0]] / s.total * 100) : '—', kg(sa[g[0]]), dif(s[g[0]], sa[g[0]])]).concat([['<b>Total</b>', '<b>' + kg(s.total) + '</b>', '', '<b>' + kg(sa.total) + '</b>', dif(s.total, sa.total)]]))}
+  <h2>1. Geração por grupo</h2>${D.mesesPorColeta.has(m) ? '<p><small>Mês sem pesagem diária: valores estimados pelo peso coletado.</small></p>' : ''}${tbl(['Grupo', 'Mês atual (kg)', '% do total', 'Mês anterior (kg)', 'Variação'], GRUPOS_PES.map(g => [g[1], kg(s[g[0]]), s.total ? pct(s[g[0]] / s.total * 100) : '—', kg(sa[g[0]]), dif(s[g[0]], sa[g[0]])]).concat([['<b>Total</b>', '<b>' + kg(s.total) + '</b>', '', '<b>' + kg(sa.total) + '</b>', dif(s.total, sa.total)]]))}
   ${a && s.total ? `<p>Geração por atendimento: <b>${(s.total / a).toLocaleString('pt-BR', { maximumFractionDigits: 3 })} kg/atendimento</b>.</p>` : ''}
   <h2>2. Geração por setor</h2>${tbl(['Setor', 'A', 'B', 'D comum', 'D recicl.', 'E', 'Total (kg)'], Object.keys(setores).sort((x, y) => x.localeCompare(y, 'pt-BR')).map(n => { const o = setores[n]; return [esc(n), kg(o.kgA), kg(o.kgB), kg(o.kgD), kg(o.kgR), kg(o.kgE), '<b>' + kg(o.kgA + o.kgB + o.kgD + o.kgR + o.kgE) + '</b>']; }))}
   <h2>3. Coletas e destinação</h2>${tbl(['Data', 'Empresa', 'MTR', 'Grupo', 'kg', 'Destino', 'CDF'], col.map(c => [fd(c.data), esc(c.empresa), esc(c.mtr), esc(c.grupo), kg(c.kg), esc(c.destino), c.cdf ? esc(c.cdf) : 'Pendente']))}
