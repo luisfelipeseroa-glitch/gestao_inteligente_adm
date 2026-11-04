@@ -91,3 +91,20 @@ COMO ASSINA
 - QR Code do documento abre modulos/pop/verificar.html (pública, sem login) e mostra quem assinou e se é a versão vigente.
 - Isto é assinatura eletrônica simples (identificação por login + senha + registro). Para validade jurídica ampla (gov.br /
   ICP-Brasil) assine o PDF por fora, se a SMS exigir.
+
+
+RH E DP e ROUPARIA (modulos/rhdp/ e modulos/rouparia/)
+-------------------------------------------------------
+RH e DP: avaliação de experiência (45/90 dias), relatório de evolução (pontuação + parecer da IA: continuar / acompanhar / não continuar),
+orientação de conduta (modelo da unidade), advertência e desligamento, todos com impressão.
+Rouparia: notas de saída (suja) e entrada (limpa), peso da nota x peso real, diferenças, dashboards, upload de notas, importação CSV/Excel,
+relatório em Excel/PDF e carta de questionamento à lavanderia (IA aconselha e redige).
+
+Configuração (uma vez):
+1. SQL Editor do Supabase: rode sql/pop.sql (se ainda não rodou) e DEPOIS sql/rhdp.sql.
+   Os dados de RH ficam em tabela protegida: só quem está ativo em POP > Signatários consegue ler/gravar.
+   (Cadastre seu e-mail e os dos coordenadores lá; se a lista estiver vazia o acesso fica aberto a todos logados.)
+2. IA: supabase functions deploy ia-assistente   (usa o mesmo segredo ANTHROPIC_API_KEY do POP; opcional IA_MODEL).
+   Sem a função, os módulos funcionam com regras e modelos locais.
+3. Rouparia: em Configurações informe fornecedor, tolerância de peso (%) e valor por kg.
+A recomendação da IA/sistema é apoio à decisão: a decisão final é sempre do gestor, com RH/jurídico.

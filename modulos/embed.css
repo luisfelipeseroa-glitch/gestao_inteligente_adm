@@ -69,3 +69,29 @@ html.embed[data-mod=pop] .danger{background:#9c3030}
 html.embed[data-mod=pop] .tema{background:#f4f8fc;color:#17314d}
 html.embed[data-mod=pop] .tema.on{background:#e4effa}
 html.embed[data-mod=pop] .rw .x{background:#f3d6d3;color:#8a1c14}
+
+/* ---------- rhdp ---------- */
+html.embed[data-mod=rhdp]{background:#f3f7fc}
+html.embed[data-mod=rhdp] body{background:#f3f7fc}
+html.embed[data-mod=rhdp] header,html.embed[data-mod=rhdp] footer{display:none}
+html.embed[data-mod=rhdp] nav{border-radius:12px;margin:14px 16px 0;padding:8px}
+html.embed[data-mod=rhdp] main{margin:14px auto}
+html.embed[data-mod=rhdp] button{background:#1f5fa8}
+html.embed[data-mod=rhdp] nav button{background:transparent;color:#234866}
+html.embed[data-mod=rhdp] nav button.active{background:#123e70;color:#fff}
+html.embed[data-mod=rhdp] .secondary,html.embed[data-mod=rhdp] .tabs2 button{background:#e5edf4;color:#153b61}
+html.embed[data-mod=rhdp] .tabs2 button.on{background:#123e70;color:#fff}
+html.embed[data-mod=rhdp] .danger{background:#9c3030}
+
+/* ---------- rouparia ---------- */
+html.embed[data-mod=rouparia]{background:#f3f7fc}
+html.embed[data-mod=rouparia] body{background:#f3f7fc}
+html.embed[data-mod=rouparia] header,html.embed[data-mod=rouparia] footer{display:none}
+html.embed[data-mod=rouparia] nav{border-radius:12px;margin:14px 16px 0;padding:8px}
+html.embed[data-mod=rouparia] main{margin:14px auto}
+html.embed[data-mod=rouparia] button{background:#1f5fa8}
+html.embed[data-mod=rouparia] nav button{background:transparent;color:#234866}
+html.embed[data-mod=rouparia] nav button.active{background:#123e70;color:#fff}
+html.embed[data-mod=rouparia] .secondary,html.embed[data-mod=rouparia] .tabs2 button{background:#e5edf4;color:#153b61}
+html.embed[data-mod=rouparia] .tabs2 button.on{background:#123e70;color:#fff}
+html.embed[data-mod=rouparia] .danger{background:#9c3030}
