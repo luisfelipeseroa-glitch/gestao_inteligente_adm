@@ -130,7 +130,7 @@ const ENT = {
     imprimir: docDesl
   }
 };
-const VIEWS = [['painel', 'Painel'], ['aval', 'Avaliação de experiência'], ['evol', 'Relatório de evolução'], ['cond', 'Orientação de conduta'], ['adv', 'Advertência'], ['desl', 'Desligamento'], ['cfg', 'Configurações']];
+const VIEWS = [['painel', 'Painel'], ['quadro', 'Quadro de progressão'], ['aval', 'Avaliação de experiência'], ['evol', 'Relatório de evolução'], ['cond', 'Orientação de conduta'], ['adv', 'Advertência'], ['desl', 'Desligamento'], ['cfg', 'Configurações']];
 let view = 'painel', ed = {}, flt = {}, CACHE = {};
 async function dados(col) { return CACHE[col] || (CACHE[col] = await listar(col)); }
 const limparCache = () => { CACHE = {}; };
@@ -393,6 +393,32 @@ function dashQualidade(av, co, ad, ano) {
   <div class="box2"><b>Orientações por mês</b>${ml.map(m => `<div class="barrow"><span>${m.slice(5)}/${m.slice(0, 4)}</span><div class="bar"><i style="width:${meses[m] / mm * 100}%;background:#12805c"></i></div><b>${meses[m]}</b></div>`).join('') || '<p class="muted">Sem dados.</p>'}</div>
   <div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Orientações (total)</th><th>Em ${ano}</th><th>Advertências</th><th>Média das avaliações</th><th>Última ocorrência</th></tr></thead><tbody>${L.map(x => `<tr><td><b>${esc(x.nome)}</b></td><td>${x.cond}</td><td>${x.condAno}</td><td>${x.adv}</td><td>${x.aval.length ? (x.aval.reduce((s, v) => s + v, 0) / x.aval.length).toFixed(1) : '—'}</td><td>${fd(x.ult)}</td></tr>`).join('') || '<tr><td colspan="6">Sem registros.</td></tr>'}</tbody></table></div>`;
 }
+/* Quadro de progressão disciplinar: 1ª a 5ª orientação > advertência > suspensão (1 a 3 dias) > demissão */
+const QCOLS = ['1ª orientação', '2ª orientação', '3ª orientação', '4ª orientação', '5ª orientação', 'Advertência', 'Suspensão 1 dia', 'Suspensão 2 dias', 'Suspensão 3 dias', 'Demissão'];
+async function montarQuadro() {
+  const [co, ad, de] = (await Promise.all([dados('cond'), dados('adv'), dados('desl')])).map(vivos);
+  const por = new Map();
+  const get = r => { const k = r.matricula ? 'm' + r.matricula : 'n' + semAc(r.nome); if (!por.has(k)) por.set(k, { nome: r.nome, matricula: r.matricula || '', cargo: r.cargo || '', c: Array(10).fill(''), extra: 0, ult: '' }); const o = por.get(k); if (!o.cargo && r.cargo) o.cargo = r.cargo; return o; };
+  const marca = (o, i, txt, d) => { o.c[i] = o.c[i] ? o.c[i] + ' / ' + txt : txt; if (String(d) > o.ult) o.ult = d; };
+  co.sort((a, b) => String(a.data).localeCompare(String(b.data))).forEach(r => { const o = get(r); const n = o.c.slice(0, 5).filter(Boolean).length; const t = fd(r.data) + (r.numero ? ' (nº ' + r.numero + ')' : ''); if (n < 5) marca(o, n, t, r.data); else { o.extra++; marca(o, 4, '+' + fd(r.data), r.data); } });
+  ad.sort((a, b) => String(a.data).localeCompare(String(b.data))).forEach(r => { const o = get(r), t = fd(r.data) + (r.numero ? ' (nº ' + r.numero + ')' : ''); if (/suspens/i.test(r.nivel)) { const d = Math.min(3, Math.max(1, parseInt(r.diasSusp, 10) || 1)); marca(o, 5 + d, t + (parseInt(r.diasSusp, 10) > 3 ? ' [' + r.diasSusp + ' dias]' : ''), r.data); } else marca(o, 5, t + (/verbal/i.test(r.nivel) ? ' (verbal)' : ''), r.data); });
+  de.forEach(r => { const o = get(r); marca(o, 9, fd(r.data) + ' · ' + (r.tipo || ''), r.data); });
+  const nivel = o => { for (let i = 9; i >= 0; i--) if (o.c[i]) return i; return -1; };
+  return Array.from(por.values()).map(o => ({ ...o, nivel: nivel(o) })).sort((a, b) => b.nivel - a.nivel || a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+async function viewQuadro() {
+  const Q = await montarQuadro(), cor = i => i >= 9 ? '#f3c5c5' : i >= 6 ? '#f9d9b8' : i === 5 ? '#fbe8a6' : i >= 0 ? '#dcebfa' : '';
+  $('content').innerHTML = `<section class="view"><h2>Quadro de progressão disciplinar</h2><p class="muted">Um colaborador por linha, com a data de cada etapa: 1ª a 5ª orientação, advertência, suspensão (1 a 3 dias) e demissão. Montado automaticamente a partir dos documentos registrados (cancelados não entram).</p>
+  <div class="actions"><button type="button" data-act="qXlsx">⬇ Baixar planilha (Excel)</button><button type="button" class="secondary" data-act="qPrint">Imprimir quadro</button></div>
+  <div class="table-wrap"><table id="tabQ"><thead><tr><th>Colaborador</th><th>Cargo</th>${QCOLS.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${Q.map(o => `<tr><td><b>${esc(o.nome)}</b>${o.matricula ? '<br><small>mat. ' + esc(o.matricula) + '</small>' : ''}</td><td>${esc(o.cargo)}</td>${o.c.map((v, i) => `<td${v ? ` style="background:${cor(i)}"` : ''}>${esc(v)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="12">Nenhum registro ainda.</td></tr>`}</tbody></table></div>
+  <p class="muted">Cores: azul = orientação · amarelo = advertência · laranja = suspensão · vermelho = demissão. Se houver mais de 5 orientações, as seguintes aparecem na coluna da 5ª com "+".</p></section>`;
+}
+async function quadroXlsx() {
+  if (typeof XLSX === 'undefined') { notice('Biblioteca de planilhas não carregou. Verifique a internet.', true); return; }
+  const Q = await montarQuadro();
+  const rows = Q.map(o => { const r = { Colaborador: o.nome, Matrícula: o.matricula, Cargo: o.cargo }; QCOLS.forEach((c, i) => { r[c] = o.c[i]; }); r['Orientações extras (além da 5ª)'] = o.extra || ''; return r; });
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Progressão'); XLSX.writeFile(wb, `quadro_progressao_${hoje()}.xlsx`);
+}
 async function viewCfg() {
   $('content').innerHTML = `<section class="view"><h2>Configurações dos documentos</h2><p class="muted">Dados que saem no cabeçalho e nas assinaturas.</p>
   <form id="cfgForm"><div class="grid"><label class="fld">Unidade<input name="unidade" value="${esc(CFG.unidade)}"></label><label class="fld">Lotação (texto do documento)<input name="lotacao" value="${esc(CFG.lotacao)}"></label>
@@ -411,6 +437,8 @@ const acoes = {
     if (E.numerar) { if (!confirm('Este documento é numerado. Ele será marcado como CANCELADO (o número não é reutilizado e deixa de contar nos indicadores). Continuar?')) return; const r = (await dados(E.col)).find(x => x.id === d.id); await salvar(E.col, { ...r, cancelado: true, canceladoEm: hoje() }); limparCache(); notice('Documento cancelado.'); await render(); return; }
     if (!confirm('Excluir este registro?')) return; await excluir(d.id); limparCache(); notice('Registro excluído.'); await render(); },
   async redigir(d, b) { await redigir(d, b); },
+  async qXlsx() { await quadroXlsx(); },
+  async qPrint() { imprimirHtml('<h2 style="text-align:center">Quadro de progressão disciplinar</h2>' + $('tabQ').outerHTML); },
   async analisar() { await analisar(); },
   async parecerIA(d, b) { await parecerIA(b); },
   async evPrint(d) { const r = (await dados('evol')).find(x => x.id === d.id); if (r) imprimirHtml(docEvol(r)); },
@@ -419,7 +447,7 @@ const acoes = {
 async function render() {
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.v === view));
   try {
-    if (view === 'painel') await viewPainel(); else if (view === 'evol') await viewEvol(); else if (view === 'cfg') await viewCfg(); else await viewEntity(view);
+    if (view === 'painel') await viewPainel(); else if (view === 'evol') await viewEvol(); else if (view === 'cfg') await viewCfg(); else if (view === 'quadro') await viewQuadro(); else await viewEntity(view);
   } catch (e) { notice(erroTxt(e), true); }
 }
 function ligar() {
