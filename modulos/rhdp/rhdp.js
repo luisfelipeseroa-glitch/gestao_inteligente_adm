@@ -52,6 +52,13 @@ async function salvarNumerado(col, o) {
   throw new Error('Não foi possível gerar um número único. Tente novamente.');
 }
 const vivos = L => L.filter(r => !r.cancelado);
+/* Nº individual: posição do documento na sequência do próprio colaborador (1ª, 2ª, 3ª…), por data. O nº de registro geral (01/2026…) continua só como controle interno. */
+function ordInd(col, r) {
+  const mesmo = x => (r.matricula && String(x.matricula || '') === String(r.matricula)) || semAc(x.nome) === semAc(r.nome);
+  const L = vivos(CACHE[col] || []).filter(mesmo).sort((a, b) => String(a.data).localeCompare(String(b.data)) || String(a.criadoEm || '').localeCompare(String(b.criadoEm || '')));
+  const i = L.findIndex(x => x.id === r.id); return i >= 0 ? i + 1 : L.length + 1;
+}
+const numInd = (col, r) => r.cancelado ? '—' : ordInd(col, r) + 'ª';
 async function excluir(id) { const r = await C().from(T).delete().eq('id', id); if (r.error) throw r.error; }
 let COLABS = [];
 async function carregarColabs() {
@@ -104,7 +111,7 @@ const ENT = {
       { k: 'assunto', l: 'Assunto', def: () => 'Orientação de Conduta Profissional' },
       { k: 'relato', l: 'Relato da orientação', t: 'textarea', full: 1, ia: 'orientação de conduta', req: 1 },
       { k: 'obsColab', l: 'Observação do colaborador (se já manifestada)', t: 'textarea', full: 1 }],
-    cols: [['Nº', r => esc(r.numero || '')], ['Data', r => fd(r.data)], ['Colaborador', r => `<b>${esc(r.nome)}</b><br><small>${esc(r.cargo)}</small>`], ['Assunto', r => esc(r.assunto)]],
+    cols: [['Nº do colaborador', r => `<b>${numInd('cond', r)}</b><br><small>registro ${esc(r.numero || '')}</small>`], ['Data', r => fd(r.data)], ['Colaborador', r => `<b>${esc(r.nome)}</b><br><small>${esc(r.cargo)}</small>`], ['Assunto', r => esc(r.assunto)]],
     imprimir: docCond
   },
   adv: {
@@ -116,7 +123,7 @@ const ENT = {
       { k: 'norma', l: 'Norma/regra descumprida (regimento interno, POP, CLT art. 482 etc.)', t: 'textarea', full: 1 },
       { k: 'orient', l: 'Orientação e expectativa para o futuro', t: 'textarea', full: 1 },
       { k: 'recusou', l: 'O colaborador recusou-se a assinar', t: 'select', o: ['Não', 'Sim'] }, { k: 'obsColab', l: 'Manifestação do colaborador', t: 'textarea', full: 1 }],
-    cols: [['Nº', r => esc(r.numero || '')], ['Data', r => fd(r.data)], ['Colaborador', r => `<b>${esc(r.nome)}</b><br><small>${esc(r.cargo)}</small>`], ['Medida', r => esc(r.nivel)], ['Fato', r => esc(String(r.fato || '').slice(0, 90))]],
+    cols: [['Nº do colaborador', r => `<b>${numInd('adv', r)}</b><br><small>registro ${esc(r.numero || '')}</small>`], ['Data', r => fd(r.data)], ['Colaborador', r => `<b>${esc(r.nome)}</b><br><small>${esc(r.cargo)}</small>`], ['Medida', r => esc(r.nivel)], ['Fato', r => esc(String(r.fato || '').slice(0, 90))]],
     imprimir: docAdv
   },
   desl: {
@@ -189,9 +196,11 @@ async function atualizaHist() {
   const f = $('ef'); if (!f || !f.elements.nome) return; const box = $('histBox'); if (!box) return;
   const nome = f.elements.nome.value.trim(); if (!nome || !['cond', 'adv', 'desl'].includes(f.dataset.k)) { box.innerHTML = ''; return; }
   const h = await historicoDe(nome, f.elements.matricula ? f.elements.matricula.value : '');
+  const editando = ed[f.dataset.k] || null;           // ao editar, o próprio documento não conta como "anterior"
+  ['aval', 'cond', 'adv'].forEach(c => { h[c] = h[c].filter(x => x.id !== editando); });
   const partes = [];
   if (h.aval.length) partes.push(`${h.aval.length} avaliação(ões)`); if (h.cond.length) partes.push(`${h.cond.length} orientação(ões) de conduta`); if (h.adv.length) partes.push(`${h.adv.length} advertência(s)`);
-  box.innerHTML = (f.dataset.k === 'cond' ? `<div class="box2"><b>Esta será a ${h.cond.length + 1}ª orientação de conduta deste colaborador.</b></div>` : '') + (partes.length ? `<div class="box2"><b>Histórico deste colaborador no sistema:</b> ${partes.join(' · ')}. ${h.adv.length || h.cond.length ? 'Considere a progressividade das medidas (orientação → advertência → suspensão) e a proporcionalidade.' : ''}</div>` : '<div class="box2 muted">Sem registros anteriores deste colaborador no sistema.</div>');
+  box.innerHTML = (f.dataset.k === 'cond' ? `<div class="box2"><b>${editando ? 'Esta é a' : 'Esta será a'} ${h.cond.length + 1}ª orientação de conduta deste colaborador.</b></div>` : f.dataset.k === 'adv' ? `<div class="box2"><b>${editando ? 'Esta é a' : 'Esta será a'} ${h.adv.length + 1}ª advertência deste colaborador.</b></div>` : '') + (partes.length ? `<div class="box2"><b>Histórico deste colaborador no sistema:</b> ${partes.join(' · ')}. ${h.adv.length || h.cond.length ? 'Considere a progressividade das medidas (orientação → advertência → suspensão) e a proporcionalidade.' : ''}</div>` : '<div class="box2 muted">Sem registros anteriores deste colaborador no sistema.</div>');
 }
 async function salvarEntidade(form, depois) {
   const k = form.dataset.k, E = ENT[k], L = await dados(E.col), cur = ed[k] ? L.find(r => r.id === ed[k]) : null;
@@ -321,17 +330,17 @@ const logoSus = () => `<img src="../../assets/logo-sus.png" alt="SUS" style="hei
 const logos = tipo => tipo === 'upa'
   ? `<div class="logos" style="justify-content:center"><img src="../../assets/logo-upa.png" alt="UPA Rocinha" style="height:62px"></div>`
   : `<div class="logos"><img src="../../assets/logo-gnosis.jpg" alt="Instituto Gnosis" style="height:60px">${logoSus()}</div>`;
-const caixaCab = (r, assunto, extra) => `<table class="hdrbox"><tr><td>Data: ${fd(r.data)}</td><td>Nº: ${esc(r.numero || '')}</td></tr><tr><td>Unidade: ${esc(CFG.unidade)}</td><td>Funcionário: ${esc(r.nome)}</td></tr><tr><td colspan="2">Assunto: ${esc(assunto)}${extra || ''}</td></tr></table>`;
+const caixaCab = (r, assunto, extra, nro) => `<table class="hdrbox"><tr><td>Data: ${fd(r.data)}</td><td>Nº: ${esc(nro != null ? nro : (r.numero || ''))}</td></tr><tr><td>Unidade: ${esc(CFG.unidade)}</td><td>Funcionário: ${esc(r.nome)}</td></tr><tr><td colspan="2">Assunto: ${esc(assunto)}${extra || ''}</td></tr></table>`;
 const assinaturas = (r, recusou) => `<div class="assin"><div>${recusou ? 'Colaborador recusou-se a assinar' : ''}<br>Funcionário(a)</div><div>${esc(CFG.coordNome)}<br>${esc(CFG.coordCargo)}${CFG.coordCnes ? '<br>CNES ' + esc(CFG.coordCnes) : ''}<br>Coordenador(a)</div><div>Testemunha</div><div>Testemunha</div></div>`;
 function docCond(r) {
-  return `${logos()}${caixaCab(r, r.assunto || 'Orientação de Conduta Profissional')}
+  return `${logos()}${caixaCab(r, r.assunto || 'Orientação de Conduta Profissional', '', numInd('cond', r) + ' orientação')}
   <p style="margin:14px 0">Eu, <b>${esc(r.nome)}</b>, com cargo de <b>${esc(r.cargo)}</b> lotado(a) no(a) ${esc(CFG.lotacao)}, reconheço que fui orientado(a) quanto à minha postura profissional. Os pontos negativos de minha conduta foram sinalizados a fim de promover mudança e crescimento profissional.</p>
   <p>Relato da orientação:</p><div class="rel">${esc(r.relato)}</div>
   <div class="obsbox">Observação do Colaborador sobre a Orientação:<br>${esc(r.obsColab || '')}</div>${assinaturas(r)}`;
 }
 function docAdv(r) {
   const susp = /suspens/i.test(r.nivel);
-  return `${logos()}${caixaCab(r, 'Advertência Disciplinar — ' + (r.nivel || ''))}
+  return `${logos()}${caixaCab(r, 'Advertência Disciplinar — ' + (r.nivel || ''), '', numInd('adv', r) + ' advertência')}
   <p style="margin:14px 0">Eu, <b>${esc(r.nome)}</b>, com cargo de <b>${esc(r.cargo)}</b>${r.matricula ? ', matrícula ' + esc(r.matricula) : ''}, lotado(a) no(a) ${esc(CFG.lotacao)}, declaro ter tomado ciência da medida de <b>${esc(r.nivel)}</b>${susp && r.diasSusp ? ` (${esc(r.diasSusp)} dia(s))` : ''}, aplicada em ${fd(r.data)}${r.dataFato ? ', referente a fato ocorrido em ' + fd(r.dataFato) : ''}.</p>
   <p>Descrição do fato:</p><div class="rel">${esc(r.fato)}</div>
   ${r.norma ? `<p>Norma/regra descumprida:</p><div class="rel">${esc(r.norma)}</div>` : ''}${r.orient ? `<p>Orientação e expectativa:</p><div class="rel">${esc(r.orient)}</div>` : ''}
