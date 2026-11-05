@@ -194,17 +194,20 @@ function viewDet() {
   const cancel = t.status === 'Cancelado';
   $('content').innerHTML = `<section class="view"><h2>${esc(t.tema)} ${badgeT(t)}</h2>
   <table class="hdrbox"><tr><td><b>Tipo</b> ${esc(t.tipo)}</td><td><b>Data</b> ${fd(t.data)} · ${esc(t.hora)} às ${fimTxt(t)} (${durTxt(t.duracao)})</td></tr><tr><td><b>Instrutor</b> ${esc(t.instrutor)}${t.cargoInstrutor ? ' — ' + esc(t.cargoInstrutor) : ''}</td><td><b>Local</b> ${esc(t.local || '—')}</td></tr>${t.conteudo ? `<tr><td colspan="2"><b>Conteúdo</b> ${esc(t.conteudo)}</td></tr>` : ''}</table>
-  <div class="actions"><button type="button" class="secondary" id="bEd">Editar / participantes</button><button type="button" id="bPrint">Imprimir lista de presença</button><button type="button" class="secondary" id="bXls">Excel</button>${cancel ? '' : `<button type="button" class="secondary" id="bConc">${t.status === 'Concluído' ? 'Reabrir' : 'Marcar como concluído'}</button><button type="button" class="danger" id="bCanc">Cancelar treinamento</button>`}<button type="button" class="secondary" id="bVolta">← Lista</button></div>
+  <div class="actions"><button type="button" class="secondary" id="bEd">Editar / participantes</button><button type="button" id="bPrint">Imprimir lista de presença</button><button type="button" class="secondary" id="bXls">Excel</button><button type="button" id="bCert">Certificados (presentes)</button><button type="button" class="secondary" id="bPdf">Baixar PDF da lista</button>${cancel ? '' : `<button type="button" class="secondary" id="bConc">${t.status === 'Concluído' ? 'Reabrir' : 'Marcar como concluído'}</button><button type="button" class="danger" id="bCanc">Cancelar treinamento</button>`}<button type="button" class="secondary" id="bVolta">← Lista</button></div>
   ${cancel ? '<div class="alert bad"><b>⛔</b><span>Treinamento cancelado. Presenças não são registradas.</span></div>' : `
   <h3>Assinar presença</h3><p class="muted">O colaborador assina lendo o QR do crachá ou pelo rosto. A câmera fica ligada para o próximo.</p>
   <div class="actions"><button type="button" id="bQR">📷 Ler QR do crachá</button><button type="button" id="bFac">🙂 Reconhecimento facial</button><button type="button" class="secondary hidden" id="bRec">Reconhecer rosto</button><button type="button" class="secondary" id="bTroca">Trocar câmera</button><button type="button" class="secondary" id="bParar">Parar câmera</button></div>
   <label class="chk" style="display:flex;gap:8px;align-items:center;font-size:.88rem"><input type="checkbox" id="ckRap" style="width:auto;margin:0"${rapido ? ' checked' : ''}> Modo rápido: registrar direto ao ler (sem confirmar cada pessoa)</label>
   <div class="cam hidden" id="camBox"><video id="vid" playsinline muted></video></div><div id="res"></div>`}
+  <h3>Evidência no plano SUBHUE</h3><p class="muted">Anexa o PDF da lista de presença como evidência de itens do plano de adequação (ex.: capacitação da equipe).${(t.subhue || []).length ? ' <b>Já anexado a ' + t.subhue.length + ' item(ns).</b>' : ''}</p><label class="fld">Itens (Ctrl/⌘ para vários)<select id="subItens" multiple size="5">${(window.SUBHUE ? SUBHUE.itens : []).map(i => `<option value="${esc(i.s + '-' + i.r)}">${esc(i.s)} req. ${esc(i.r)} — ${esc(String(i.t || '').slice(0, 90))}</option>`).join('')}</select></label><div class="actions"><button type="button" id="bSub">Anexar lista de presença ao SUBHUE</button></div>
   <h3>Participantes <span class="pill" id="presCont"></span></h3><div class="pres" id="presBox"></div></section>`;
   desenharPres();
   $('bVolta').onclick = () => { pararCam(); view = 'lista'; render(); };
   $('bEd').onclick = () => { pararCam(); view = 'novo'; render(); };
-  $('bPrint').onclick = () => imprimir(t); $('bXls').onclick = () => excel(t);
+  $('bPrint').onclick = () => imprimir(t); $('bXls').onclick = () => excel(t); $('bCert').onclick = () => certificados(t);
+  $('bPdf').onclick = async () => { try { baixarPdf(await pdfLista(t), 'Lista_presenca_' + semAc(t.tema).replace(/[^a-z0-9]+/g, '_').slice(0, 30) + '.pdf'); } catch (e) { notice(UPA.msg(e), true); } };
+  $('bSub').onclick = () => anexarSubhue(t);
   if (!cancel) {
     $('bQR').onclick = () => { $('bRec').classList.add('hidden'); modoQR(); }; $('bFac').onclick = modoFacial; $('bRec').onclick = reconhecer; $('bParar').onclick = () => { pararCam(); $('camBox').classList.add('hidden'); $('res').innerHTML = ''; $('bRec').classList.add('hidden'); };
     $('bTroca').onclick = async () => { facing = facing === 'user' ? 'environment' : 'user'; if (stream) await ligarCam(); };
@@ -236,6 +239,64 @@ function excel(t) {
   const L = [['Tema', t.tema], ['Data', fd(t.data)], ['Hora', t.hora], ['Duração', durTxt(t.duracao)], ['Instrutor', t.instrutor], ['Local', t.local || ''], [], ['Nº', 'Nome', 'Matrícula', 'Função', 'Presença', 'Método', 'Data/hora']];
   (t.participantes || []).forEach((p, i) => { const a = assinou(t, p.id); L.push([i + 1, p.nome, p.matricula, p.funcao, a ? 'Presente' : 'Ausente', a ? (a.metodo === 'qr' ? 'QR' : 'Facial') : '', a ? new Date(a.ts).toLocaleString('pt-BR') : '']); });
   baixarXlsx(L, 'Presenca_' + semAc(t.tema).replace(/[^a-z0-9]+/g, '_').slice(0, 30) + '.xlsx', 'Presença');
+}
+
+
+/* ---------- certificados, PDF da lista e evidência SUBHUE ---------- */
+async function certificados(t) {
+  const L = (t.participantes || []).filter(p => assinou(t, p.id));
+  if (!L.length) { notice('Ninguém registrou presença ainda.', true); return; }
+  const pag = p => `<div class="cert" style="page-break-after:always;border:3px double #123e70;padding:14mm 12mm;min-height:250mm;text-align:center">
+  <div class="logos"><img src="../../assets/logo-gnosis.jpg" alt="Instituto Gnosis" style="height:60px">${logoSus()}</div>
+  <p style="margin:6mm 0 0;font-size:11pt">UPA 24h Rocinha · CNES 6507409</p>
+  <h1 style="font-size:30pt;margin:30mm 0 14mm;color:#123e70;letter-spacing:3px">CERTIFICADO</h1>
+  <p style="font-size:14pt;line-height:1.8;text-align:justify;margin:0 8mm">Certificamos que <b>${esc(p.nome)}</b>${p.matricula ? ', matrícula ' + esc(p.matricula) : ''}${p.funcao ? ', ' + esc(p.funcao) : ''}, participou do ${esc(t.tipo.toLowerCase())} <b>“${esc(t.tema)}”</b>, realizado em ${fd(t.data)}, das ${esc(t.hora)} às ${fimTxt(t)}, com carga horária de <b>${durTxt(t.duracao)}</b>, ministrado por ${esc(t.instrutor)}${t.cargoInstrutor ? ' (' + esc(t.cargoInstrutor) + ')' : ''}.</p>
+  ${t.conteudo ? `<p style="font-size:10.5pt;text-align:justify;margin:10mm 8mm 0"><b>Conteúdo:</b> ${esc(t.conteudo)}</p>` : ''}
+  <p style="margin-top:22mm;font-size:12pt">Rio de Janeiro, ${new Date(t.data + 'T12:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}.</p>
+  <div class="assin" style="margin-top:30mm"><div>${esc(t.instrutor)}<br>Instrutor</div><div>Luis Felipe W. Seroa da Motta<br>Coordenador Administrativo · CNES 6507409</div></div>
+  <p style="font-size:8pt;color:#555;margin-top:12mm">Presença registrada eletronicamente em ${new Date(assinou(t, p.id).ts).toLocaleString('pt-BR')} (${assinou(t, p.id).metodo === 'qr' ? 'QR do crachá' : 'reconhecimento facial'}).</p></div>`;
+  const root = $('printRoot'); root.innerHTML = `<div class="doc">${L.map(pag).join('')}</div>`; root.classList.remove('hidden');
+  await aguardarImgs(root); setTimeout(() => { window.print(); root.classList.add('hidden'); }, 100);
+}
+async function pdfLista(t) {
+  if (!window.PDFLib) throw new Error('Biblioteca de PDF não carregou (verifique a internet).');
+  const { PDFDocument, StandardFonts, rgb } = PDFLib, doc = await PDFDocument.create(), f = await doc.embedFont(StandardFonts.Helvetica), fb = await doc.embedFont(StandardFonts.HelveticaBold);
+  const san = s => String(s == null ? '' : s).replace(/[—–]/g, '-').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/·/g, '·').replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '?'), M = 40, W = 595, H = 842;
+  const cut = (s, w, ft, sz) => { s = san(s); while (s.length > 1 && ft.widthOfTextAtSize(s, sz) > w) s = s.slice(0, -1); return s; };
+  let pg, y; const nova = () => { pg = doc.addPage([W, H]); y = H - M; };
+  const txt = (s, x, sz, ft, cor) => pg.drawText(cut(s, W - M - x, ft || f, sz), { x, y, size: sz, font: ft || f, color: cor || rgb(0, 0, 0) });
+  nova(); txt('LISTA DE PRESENÇA — ' + t.tipo.toUpperCase(), M, 14, fb, rgb(0.07, 0.24, 0.44)); y -= 18;
+  txt('UPA 24h Rocinha · CNES 6507409 · Instituto Gnosis', M, 9); y -= 18;
+  [['Tema', t.tema], ['Data', fd(t.data) + ' · ' + t.hora + ' às ' + fimTxt(t) + ' · carga horária ' + durTxt(t.duracao)], ['Instrutor', t.instrutor + (t.cargoInstrutor ? ' — ' + t.cargoInstrutor : '')], ['Local', t.local || '']].forEach(([k, v]) => { txt(k + ':', M, 10, fb); pg.drawText(cut(v, W - 2 * M - 60, f, 10), { x: M + 60, y, size: 10, font: f }); y -= 15; });
+  y -= 8; const cols = [M, M + 26, M + 236, M + 296, M + 396], head = ['Nº', 'Nome', 'Matrícula', 'Função', 'Registro de presença'];
+  const cab = () => { pg.drawRectangle({ x: M - 2, y: y - 4, width: W - 2 * M + 4, height: 16, color: rgb(0.9, 0.93, 0.97) }); head.forEach((h, i) => pg.drawText(h, { x: cols[i], y, size: 9, font: fb })); y -= 18; };
+  cab();
+  (t.participantes || []).forEach((p, i) => {
+    if (y < 70) { nova(); cab(); }
+    const a = assinou(t, p.id), reg = a ? (a.metodo === 'qr' ? 'QR' : 'Facial') + ' ' + new Date(a.ts).toLocaleString('pt-BR') : 'ausente';
+    [String(i + 1), p.nome, p.matricula, p.funcao, reg].forEach((v, k) => pg.drawText(cut(v, (cols[k + 1] || W - M) - cols[k] - 6 + (k === 4 ? 100 : 0), k === 4 && !a ? f : f, 8.5), { x: cols[k], y, size: 8.5, font: f, color: k === 4 && !a ? rgb(0.6, 0.1, 0.1) : rgb(0, 0, 0) }));
+    pg.drawLine({ start: { x: M - 2, y: y - 4 }, end: { x: W - M + 2, y: y - 4 }, thickness: 0.4, color: rgb(0.75, 0.78, 0.82) }); y -= 15;
+  });
+  y -= 14; if (y < 60) nova(); pg.drawText('Presença registrada eletronicamente no sistema Gestão Inteligente UPA Rocinha (QR do crachá ou reconhecimento facial).', { x: M, y, size: 7.5, font: f, color: rgb(0.3, 0.3, 0.3) });
+  doc.setSubject('Lista de presença — ' + san(t.tema)); return await doc.save();
+}
+function baixarPdf(u8, nome) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' })); a.download = nome; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+async function anexarSubhue(t) {
+  const sel = Array.from($('subItens').selectedOptions).map(o => o.value);
+  if (!sel.length) { notice('Escolha ao menos um item do plano SUBHUE.', true); return; }
+  if (!presDe(t).length) { notice('Ainda não há presença registrada para servir de evidência.', true); return; }
+  try {
+    notice('Gerando PDF e anexando…'); const out = await pdfLista(t), blob = new Blob([out], { type: 'application/pdf' });
+    const rows = await UPA.db.list('subhue_acoes'), mapa = {}; rows.forEach(r => { mapa[r.id] = r.dados; });
+    for (const k of sel) {
+      const id = 'subhue-' + k, path = `subhue/${k}/treinamento-${t.id.slice(0, 8)}-${Date.now().toString(36)}.pdf`;
+      await UPA.files.upload(path, blob, 'application/pdf');
+      const d = { ...(mapa[id] || {}) }; d.anexos = (d.anexos || []).concat([{ path, nome: ('Lista de presença — ' + t.tema + ' (' + fd(t.data) + ')').slice(0, 100) + '.pdf', tam: out.byteLength, em: new Date().toISOString() }]);
+      d.atualizadoEm = new Date().toISOString(); await UPA.db.put('subhue_acoes', id, d);
+    }
+    t.subhue = Array.from(new Set((t.subhue || []).concat(sel))); await salvarT(t);
+    notice('Lista de presença anexada como evidência a ' + sel.length + ' item(ns) do plano SUBHUE.'); viewDet();
+  } catch (e) { notice(UPA.msg(e), true); }
 }
 
 /* ---------- frequência por colaborador ---------- */
