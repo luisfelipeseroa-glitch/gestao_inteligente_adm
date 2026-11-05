@@ -210,7 +210,7 @@ async function motivoIA(e) {
 async function ia(tarefa, d) {
   const r = await C().functions.invoke('ia-assistente', { body: { tarefa, dados: d } });
   if (r.error) throw new Error(await motivoIA(r.error));
-  if (!r.data || r.data.erro) throw new Error((r.data && r.data.erro) || 'IA indisponível');
+  if (!r.data || r.data.erro) throw new Error(((r.data && r.data.erro) || 'IA indisponível') + (r.data && r.data.detalhe ? ' — ' + r.data.detalhe : ''));
   return r.data.conteudo;
 }
 async function redigir(d, b) {
