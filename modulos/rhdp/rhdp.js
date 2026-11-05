@@ -367,12 +367,13 @@ function docEvol(r) {
   <p class="nota" style="font-size:8.5pt;border:1px solid #999;padding:6px 8px">Este relatório é instrumento de apoio à decisão. A decisão final é do gestor, com o RH/jurídico, conforme a legislação trabalhista e as normas da instituição.</p>
   <div class="assin"><div>${esc(CFG.coordNome)}<br>${esc(CFG.coordCargo)}<br>Coordenador(a)</div><div>RH / Gestor(a) Assistencial</div></div>`;
 }
+const aguardarImgs = root => Promise.all(Array.from(root.querySelectorAll('img')).map(im => im.complete && im.naturalWidth ? 0 : new Promise(r => { im.onload = im.onerror = () => r(); setTimeout(r, 4000); })));
 async function imprimirDoc(k, r) {
   const E = ENT[k]; const html = await E.imprimir(r);
   const root = $('printRoot'); root.innerHTML = `<div class="doc">${html}</div>`; root.classList.remove('hidden');
-  setTimeout(() => { window.print(); root.classList.add('hidden'); }, 150);
+  await aguardarImgs(root); setTimeout(() => { window.print(); root.classList.add('hidden'); }, 100);
 }
-function imprimirHtml(html) { const root = $('printRoot'); root.innerHTML = `<div class="doc">${html}</div>`; root.classList.remove('hidden'); setTimeout(() => { window.print(); root.classList.add('hidden'); }, 150); }
+async function imprimirHtml(html) { const root = $('printRoot'); root.innerHTML = `<div class="doc">${html}</div>`; root.classList.remove('hidden'); await aguardarImgs(root); setTimeout(() => { window.print(); root.classList.add('hidden'); }, 100); }
 
 /* ---------------- Painel ---------------- */
 async function viewPainel() {

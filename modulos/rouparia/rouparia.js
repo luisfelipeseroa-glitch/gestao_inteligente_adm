@@ -206,7 +206,8 @@ async function pdfRel() {
   <table class="t kv"><tr><td>Suja enviada (real)</td><td>${kg(R.saida)}</td></tr><tr><td>Limpa recebida (real)</td><td>${kg(R.entrada)}</td></tr><tr><td>Diferença nota − real</td><td>${kg(R.dif)}</td></tr><tr><td>Notas fora da tolerância (${CFG.tolerancia}%)</td><td>${R.fora} de ${R.comDif}</td></tr>${num(CFG.valorKg) ? `<tr><td>Estimativa cobrada a maior</td><td>${brl(R.valor)}</td></tr>` : ''}${ITENS.map(i => `<tr><td>${i[1]}: enviado / recebido</td><td>${R.itS[i[0]]} / ${R.itE[i[0]]}</td></tr>`).join('')}</table>
   <table class="t"><thead><tr><th>Data</th><th>Mov.</th><th>Nº</th><th>Nota</th><th>Real</th><th>Dif.</th><th>%</th><th>Itens</th><th>Ocorrências</th></tr></thead><tbody>${lista.map(n => { const c = calc(n); return `<tr><td>${fd(n.data)}</td><td>${tipoSaida(n) ? 'Saída' : 'Entrada'}</td><td>${esc(n.numero)}</td><td>${c.nota || ''}</td><td>${c.real || ''}</td><td>${c.tem ? c.dif.toFixed(2) : ''}</td><td>${c.tem ? c.pct.toFixed(1) : ''}</td><td>${esc(itensTxt(n))}</td><td>${esc((n.qualidade || []).join(', '))}</td></tr>`; }).join('')}</tbody></table>`);
 }
-function imprimir(html) { const r = $('printRoot'); r.innerHTML = `<div class="doc">${html}</div>`; r.classList.remove('hidden'); setTimeout(() => { window.print(); r.classList.add('hidden'); }, 150); }
+const aguardarImgs = root => Promise.all(Array.from(root.querySelectorAll('img')).map(im => im.complete && im.naturalWidth ? 0 : new Promise(r => { im.onload = im.onerror = () => r(); setTimeout(r, 4000); })));
+async function imprimir(html) { const r = $('printRoot'); r.innerHTML = `<div class="doc">${html}</div>`; r.classList.remove('hidden'); await aguardarImgs(r); setTimeout(() => { window.print(); r.classList.add('hidden'); }, 100); }
 
 /* ---------- Carta ---------- */
 let CARTA = null;
