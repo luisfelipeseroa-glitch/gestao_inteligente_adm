@@ -131,3 +131,15 @@ html.embed[data-mod=treinamentos] nav button{background:transparent;color:#23486
 html.embed[data-mod=treinamentos] nav button.active{background:#123e70;color:#fff}
 html.embed[data-mod=treinamentos] .secondary{background:#e5edf4;color:#153b61}
 html.embed[data-mod=treinamentos] .danger{background:#9c3030}
+
+/* ---------- pertences ---------- */
+html.embed[data-mod=pertences]{background:#f3f7fc}
+html.embed[data-mod=pertences] body{background:#f3f7fc}
+html.embed[data-mod=pertences] header,html.embed[data-mod=pertences] footer{display:none}
+html.embed[data-mod=pertences] nav{border-radius:12px;margin:14px 16px 0;padding:8px}
+html.embed[data-mod=pertences] main{margin:14px auto}
+html.embed[data-mod=pertences] button{background:#1f5fa8}
+html.embed[data-mod=pertences] nav button{background:transparent;color:#234866}
+html.embed[data-mod=pertences] nav button.active{background:#123e70;color:#fff}
+html.embed[data-mod=pertences] .secondary{background:#e5edf4;color:#153b61}
+html.embed[data-mod=pertences] .danger{background:#9c3030}

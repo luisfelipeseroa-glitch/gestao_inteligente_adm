@@ -128,3 +128,10 @@ Cadastro de treinamento/capacitação local (tema, instrutor, data, hora, duraç
 do módulo EPI (tabela funcionarios) e presença assinada por QR do crachá (o mesmo crachá do EPI) ou reconhecimento facial (mesmas fotos/rostos do EPI).
 Imprime lista de presença (logos Gnosis + SUS), exporta Excel e mostra a frequência/horas por colaborador. Não precisa de SQL novo
 (coleções treinamentos e treinamentos_pres). Câmera exige HTTPS (GitHub Pages ok).
+
+GUARDA DE PERTENCES (modulos/pertences/)
+Etiquetas numeradas com QR (lote A4, 21 por folha) coladas nos sacos/envelopes; cadastro (paciente, BAM, sala, itens, fotos); leitura do QR mostra os dados;
+o colaborador solicita liberação; o gestor autoriza com nome + PIN (cadastrar em Configurações; PIN guardado em hash); a entrega registra foto do
+documento, dados do familiar e assinatura na tela, e gera o termo de entrega. Aviso de nova solicitação: dentro do módulo (som + notificação) e por e-mail.
+E-mail: supabase functions deploy notificar-pertences ; supabase secrets set RESEND_API_KEY=re_...  (opcional MAIL_FROM). Sem a chave, só o aviso no portal.
+Não precisa de SQL novo. Atenção: fotos de documento ficam no bucket anexos (qualquer usuário logado do portal consegue abrir o arquivo se tiver o link).
