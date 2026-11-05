@@ -66,7 +66,7 @@ const achaColab = nome => COLABS.find(c => semAc(c.nome) === semAc(nome));
 
 /* ---------------- configuração (coordenador que assina) ---------------- */
 const CFG_ID = 'rhdp-cfg';
-let CFG = { unidade: 'UPA 24h Rocinha', lotacao: 'SMS UPA 24H ROCINHA', coordNome: 'Luis Felipe W. Seroa da Motta', coordCargo: 'Coordenador Administrativo', coordCnes: '6507409' };
+let CFG = { unidade: 'UPA 24h Rocinha', lotacao: 'SMS UPA 24H ROCINHA', coordNome: 'Luis Felipe W. Seroa da Motta', coordCargo: 'Coordenador Administrativo', coordCnes: '6507409', epiDias: { n95: 30, cir: 30, oculos: 365 } };
 async function carregarCfg() { const l = await listar('cfg'); const c = l.find(x => x.id === CFG_ID); if (c) CFG = { ...CFG, ...c }; }
 
 /* ---------------- critérios e escalas ---------------- */
@@ -130,7 +130,7 @@ const ENT = {
     imprimir: docDesl
   }
 };
-const VIEWS = [['painel', 'Painel'], ['quadro', 'Quadro de progressão'], ['aval', 'Avaliação de experiência'], ['evol', 'Relatório de evolução'], ['cond', 'Orientação de conduta'], ['adv', 'Advertência'], ['desl', 'Desligamento'], ['cfg', 'Configurações']];
+const VIEWS = [['painel', 'Painel'], ['quadro', 'Quadro de progressão'], ['epi', 'EPI por colaborador'], ['aval', 'Avaliação de experiência'], ['evol', 'Relatório de evolução'], ['cond', 'Orientação de conduta'], ['adv', 'Advertência'], ['desl', 'Desligamento'], ['cfg', 'Configurações']];
 let view = 'painel', ed = {}, flt = {}, CACHE = {};
 async function dados(col) { return CACHE[col] || (CACHE[col] = await listar(col)); }
 const limparCache = () => { CACHE = {}; };
@@ -385,6 +385,7 @@ async function viewPainel() {
     if (d >= 35 && d <= 50 && !tem('45 dias')) alertas.push(['warn', `${c.nome}: avaliação de 45 dias pendente (admissão em ${fd(c.admissao)}, ${d} dias).`]);
     if (d >= 80 && d <= 95 && !tem('90 dias')) alertas.push(['bad', `${c.nome}: avaliação de 90 dias pendente — fim da experiência próximo (admissão em ${fd(c.admissao)}, ${d} dias).`]);
   });
+  try { if (!EPIDATA) await carregarEpi(); const S = EPIDATA.fs.map(situacaoEpi), b = S.filter(x => x.pior === 'bad').length, w = S.filter(x => x.pior === 'warn').length; if (b) alertas.push(['bad', `EPI: ${b} colaborador(es) com máscara/óculos a renovar ou sem entrega registrada (aba EPI por colaborador).`]); if (w) alertas.push(['warn', `EPI: ${w} colaborador(es) com item vencendo em breve.`]); } catch (e) { /* módulo EPI indisponível */ }
   const des = de.filter(r => (r.checks || []).length < CHECK_DESL.length);
   if (des.length) alertas.push(['warn', `${des.length} desligamento(s) com providências incompletas.`]);
   $('content').innerHTML = `<section class="view"><h2>Painel de RH e DP</h2><p class="muted">Dados protegidos: visíveis só para os coordenadores cadastrados. ${COLABS.length} colaborador(es) na base (RH/EPI).</p>
@@ -434,11 +435,68 @@ async function quadroXlsx() {
   const rows = Q.map(o => { const r = { Colaborador: o.nome, Matrícula: o.matricula, Cargo: o.cargo }; QCOLS.forEach((c, i) => { r[c] = o.c[i]; }); r['Orientações extras (além da 5ª)'] = o.extra || ''; return r; });
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Progressão'); XLSX.writeFile(wb, `quadro_progressao_${hoje()}.xlsx`);
 }
+/* ---------------- EPI por colaborador (entregas do módulo Entrega de EPI) ---------------- */
+const EPI_REGRAS = [{ k: 'n95', rot: 'Máscara N95', m: ['n95', 'pff2'] }, { k: 'cir', rot: 'Máscara cirúrgica descartável', m: ['cirurg'] }, { k: 'oculos', rot: 'Óculos', m: ['oculos'] }];
+const epiPrazo = r => num((CFG.epiDias || {})[r.k]) || ({ n95: 30, cir: 30, oculos: 365 })[r.k];
+let EPIDATA = null, epiFiltro = { setor: '', st: '', q: '' }, epiFicha = null;
+async function lerTudo(tabela, cols, ord) {
+  let out = [], from = 0;
+  for (;;) { let q = C().from(tabela).select(cols); if (ord) q = q.order(ord, { ascending: false }); const r = await q.range(from, from + 999); if (r.error) throw r.error; out = out.concat(r.data || []); if (!r.data || r.data.length < 1000) break; from += 1000; }
+  return out;
+}
+async function carregarEpi() {
+  const [fs, es] = await Promise.all([lerTudo('funcionarios', 'id,nome,matricula,funcao,setor,ativo'), lerTudo('entregas', 'id,ts,funcionario_id,resp_entrega,metodo,itens', 'ts')]);
+  EPIDATA = { fs: fs.filter(f => f.ativo !== false), es };
+}
+function situacaoEpi(f) {
+  const ents = EPIDATA.es.filter(e => e.funcionario_id === f.id).sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
+  const hojeD = hoje(), regras = EPI_REGRAS.map(r => {
+    const e = ents.find(x => (x.itens || []).some(i => r.m.some(t => semAc(i.nome).indexOf(t) >= 0)));
+    const prazo = epiPrazo(r); if (!e) return { r, prazo, ult: '', dias: null, st: 'nunca' };
+    const ult = String(e.ts).slice(0, 10), dias = diasEntre(ult, hojeD), rest = prazo - dias, aviso = prazo >= 180 ? 30 : 5;
+    return { r, prazo, ult, dias, rest, st: dias >= prazo ? 'vencido' : rest <= aviso ? 'vencendo' : 'ok' };
+  });
+  const pior = regras.some(x => x.st === 'vencido' || x.st === 'nunca') ? 'bad' : regras.some(x => x.st === 'vencendo') ? 'warn' : 'ok';
+  return { f, ents, regras, pior, ultGeral: ents[0] ? String(ents[0].ts).slice(0, 10) : '' };
+}
+const stBadge = x => x.st === 'nunca' ? '<span class="badge bad">sem entrega</span>' : x.st === 'vencido' ? `<span class="badge bad">renovar (${x.dias} d)</span>` : x.st === 'vencendo' ? `<span class="badge warn">vence em ${x.rest} d</span>` : `<span class="badge ok">${x.dias} d · ok</span>`;
+async function viewEpi() {
+  if (!EPIDATA) { notice('Carregando entregas de EPI…'); await carregarEpi(); notice(''); }
+  const S = EPIDATA.fs.map(situacaoEpi), setores = Array.from(new Set(EPIDATA.fs.map(f => f.setor).filter(Boolean))).sort();
+  const q = semAc(epiFiltro.q);
+  const L = S.filter(x => (!epiFiltro.setor || x.f.setor === epiFiltro.setor) && (!epiFiltro.st || x.pior === epiFiltro.st) && (!q || semAc(x.f.nome + ' ' + (x.f.matricula || '')).indexOf(q) >= 0)).sort((a, b) => ({ bad: 0, warn: 1, ok: 2 }[a.pior] - { bad: 0, warn: 1, ok: 2 }[b.pior]) || a.f.nome.localeCompare(b.f.nome, 'pt-BR'));
+  const n = k => S.filter(x => x.pior === k).length;
+  $('content').innerHTML = `<section class="view"><h2>EPI entregue por colaborador</h2><p class="muted">Dados do módulo Entrega de EPI. Prazos: ${EPI_REGRAS.map(r => r.rot + ' ' + epiPrazo(r) + ' dias').join(' · ')} (ajustáveis em Configurações). Inclui todos os colaboradores ativos, também os de férias.</p>
+  <div class="stats"><div class="stat bad">Com item a renovar / sem entrega<strong>${n('bad')}</strong></div><div class="stat warn">Vencendo em breve<strong>${n('warn')}</strong></div><div class="stat">Em dia<strong>${n('ok')}</strong></div><div class="stat">Colaboradores<strong>${S.length}</strong></div></div>
+  <div class="filtro"><label>Setor<select id="epSetor"><option value="">Todos</option>${setores.map(x => `<option${x === epiFiltro.setor ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></label><label>Situação<select id="epSt"><option value="">Todas</option><option value="bad"${epiFiltro.st === 'bad' ? ' selected' : ''}>Renovar / sem entrega</option><option value="warn"${epiFiltro.st === 'warn' ? ' selected' : ''}>Vencendo</option><option value="ok"${epiFiltro.st === 'ok' ? ' selected' : ''}>Em dia</option></select></label><label>Buscar<input type="search" id="epBusca" value="${esc(epiFiltro.q)}" placeholder="nome ou matrícula"></label></div>
+  <div class="actions"><button type="button" data-act="epiXlsx">⬇ Baixar planilha (Excel)</button><button type="button" class="secondary" data-act="epiRecarregar">↻ Atualizar entregas</button></div>
+  <div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Setor</th>${EPI_REGRAS.map(r => `<th>${r.rot}<br><small>prazo ${epiPrazo(r)} d</small></th>`).join('')}<th>Última entrega</th><th>Ações</th></tr></thead><tbody>${L.map(x => `<tr><td><b>${esc(x.f.nome)}</b><br><small>${esc([x.f.matricula, x.f.funcao].filter(Boolean).join(' · '))}</small></td><td>${esc(x.f.setor || '')}</td>${x.regras.map(g => `<td>${stBadge(g)}${g.ult ? '<br><small>' + fd(g.ult) + '</small>' : ''}</td>`).join('')}<td>${fd(x.ultGeral)}</td><td><button type="button" class="small" data-act="epiFicha" data-id="${esc(x.f.id)}">Ficha</button></td></tr>`).join('') || '<tr><td colspan="6">Nenhum colaborador.</td></tr>'}</tbody></table></div>
+  <div id="epiFicha">${epiFicha ? htmlFichaEpi(epiFicha) : ''}</div></section>`;
+}
+function htmlFichaEpi(id) {
+  const f = EPIDATA.fs.find(x => x.id === id); if (!f) return ''; const x = situacaoEpi(f);
+  return `<h3>Ficha de EPI — ${esc(f.nome)}</h3><p class="muted">${esc([f.matricula && 'Matrícula ' + f.matricula, f.funcao, f.setor].filter(Boolean).join(' · '))}</p>
+  <div class="grow">${x.regras.map(g => `<div class="box2"><b>${g.r.rot}</b> (prazo ${g.prazo} dias)<br>${stBadge(g)}<br><small>${g.ult ? 'Última entrega: ' + fd(g.ult) : 'Nenhuma entrega registrada'}</small></div>`).join('')}</div>
+  <div class="table-wrap"><table><thead><tr><th>Data</th><th>Itens entregues</th><th>Entregue por</th><th>Método</th></tr></thead><tbody>${x.ents.map(e => `<tr><td>${fd(String(e.ts).slice(0, 10))} ${esc(new Date(e.ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))}</td><td>${esc((e.itens || []).map(i => i.qtd + 'x ' + i.nome + (i.ca ? ' (CA ' + i.ca + ')' : '')).join('; '))}</td><td>${esc(e.resp_entrega || '')}</td><td>${esc(e.metodo === 'facial' ? 'Reconhecimento facial' : e.metodo === 'qr' ? 'QR do crachá' : 'Manual')}</td></tr>`).join('') || '<tr><td colspan="4">Nenhuma entrega.</td></tr>'}</tbody></table></div>
+  <div class="actions"><button type="button" data-act="epiFichaPrint" data-id="${esc(id)}">Imprimir ficha (comprovante)</button></div>`;
+}
+function docFichaEpi(id) {
+  const f = EPIDATA.fs.find(x => x.id === id), x = situacaoEpi(f);
+  return `${logos('upa')}<table class="hdrbox"><tr><td>Data: ${fd(hoje())}</td><td>Matrícula: ${esc(f.matricula || '')}</td></tr><tr><td>Unidade: ${esc(CFG.unidade)}</td><td>Funcionário: ${esc(f.nome)}</td></tr><tr><td colspan="2">Assunto: Ficha de entrega de EPI · ${esc([f.funcao, f.setor].filter(Boolean).join(' · '))}</td></tr></table>
+  <table class="t"><thead><tr><th>Item com prazo</th><th>Prazo</th><th>Última entrega</th><th>Situação</th></tr></thead><tbody>${x.regras.map(g => `<tr><td>${g.r.rot}</td><td>${g.prazo} dias</td><td>${g.ult ? fd(g.ult) : '—'}</td><td>${g.st === 'ok' ? 'Em dia' : g.st === 'vencendo' ? 'Vence em ' + g.rest + ' dias' : g.st === 'vencido' ? 'Renovar (' + g.dias + ' dias)' : 'Sem entrega registrada'}</td></tr>`).join('')}</tbody></table>
+  <p><b>Histórico de entregas:</b></p><table class="t"><thead><tr><th>Data/hora</th><th>Itens</th><th>Entregue por</th><th>Método</th></tr></thead><tbody>${x.ents.map(e => `<tr><td>${fd(String(e.ts).slice(0, 10))} ${new Date(e.ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td><td>${esc((e.itens || []).map(i => i.qtd + 'x ' + i.nome + (i.ca ? ' (CA ' + i.ca + ')' : '')).join('; '))}</td><td>${esc(e.resp_entrega || '')}</td><td>${esc(e.metodo === 'facial' ? 'Facial' : e.metodo === 'qr' ? 'QR crachá' : 'Manual')}</td></tr>`).join('') || '<tr><td colspan="4">Sem entregas.</td></tr>'}</tbody></table>
+  <div class="assin"><div>Funcionário(a)</div><div>${esc(CFG.coordNome)}<br>${esc(CFG.coordCargo)}${CFG.coordCnes ? '<br>CNES ' + esc(CFG.coordCnes) : ''}<br>Coordenador(a)</div></div>`;
+}
+async function epiXlsx() {
+  if (typeof XLSX === 'undefined') { notice('Biblioteca de planilhas não carregou.', true); return; }
+  const rows = EPIDATA.fs.map(situacaoEpi).map(x => { const r = { Colaborador: x.f.nome, Matrícula: x.f.matricula || '', Função: x.f.funcao || '', Setor: x.f.setor || '' }; x.regras.forEach(g => { r[g.r.rot + ' — última entrega'] = g.ult ? fd(g.ult) : ''; r[g.r.rot + ' — situação'] = g.st === 'ok' ? 'Em dia' : g.st === 'vencendo' ? 'Vence em ' + g.rest + ' d' : g.st === 'vencido' ? 'Renovar (' + g.dias + ' d)' : 'Sem entrega'; }); r['Última entrega (qualquer item)'] = x.ultGeral ? fd(x.ultGeral) : ''; return r; });
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'EPI por colaborador'); XLSX.writeFile(wb, `epi_por_colaborador_${hoje()}.xlsx`);
+}
 async function viewCfg() {
   $('content').innerHTML = `<section class="view"><h2>Configurações dos documentos</h2><p class="muted">Dados que saem no cabeçalho e nas assinaturas.</p>
   <form id="cfgForm"><div class="grid"><label class="fld">Unidade<input name="unidade" value="${esc(CFG.unidade)}"></label><label class="fld">Lotação (texto do documento)<input name="lotacao" value="${esc(CFG.lotacao)}"></label>
   <label class="fld">Coordenador(a) que assina<input name="coordNome" value="${esc(CFG.coordNome)}"></label><label class="fld">Cargo<input name="coordCargo" value="${esc(CFG.coordCargo)}"></label><label class="fld">CNES (opcional)<input name="coordCnes" value="${esc(CFG.coordCnes)}"></label></div>
-  <div class="actions"><button type="submit">Salvar</button></div></form>
+    <h3>Prazos de renovação do EPI (dias)</h3><div class="grid">${EPI_REGRAS.map(r => `<label class="fld">${r.rot}<input name="epi_${r.k}" inputmode="numeric" value="${esc(epiPrazo(r))}"></label>`).join('')}</div><div class="actions"><button type="submit">Salvar</button></div></form>
   <h3>IA</h3><p class="muted">A IA usa a função <code>ia-assistente</code> do Supabase (veja o LEIA-ME). Sem ela, o sistema usa regras e modelos locais.</p></section>`;
 }
 
@@ -453,6 +511,10 @@ const acoes = {
     if (!confirm('Excluir este registro?')) return; await excluir(d.id); limparCache(); notice('Registro excluído.'); await render(); },
   async redigir(d, b) { await redigir(d, b); },
   async qXlsx() { await quadroXlsx(); },
+  async epiXlsx() { await epiXlsx(); },
+  async epiRecarregar() { EPIDATA = null; await render(); },
+  async epiFicha(d) { epiFicha = d.id; await render(); document.getElementById('epiFicha').scrollIntoView({ behavior: 'smooth' }); },
+  async epiFichaPrint(d) { imprimirHtml(docFichaEpi(d.id)); },
   async qPrint() { imprimirHtml('<h2 style="text-align:center">Quadro de progressão disciplinar</h2>' + $('tabQ').outerHTML); },
   async analisar() { await analisar(); },
   async parecerIA(d, b) { await parecerIA(b); },
@@ -462,7 +524,7 @@ const acoes = {
 async function render() {
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.v === view));
   try {
-    if (view === 'painel') await viewPainel(); else if (view === 'evol') await viewEvol(); else if (view === 'cfg') await viewCfg(); else if (view === 'quadro') await viewQuadro(); else await viewEntity(view);
+    if (view === 'painel') await viewPainel(); else if (view === 'evol') await viewEvol(); else if (view === 'cfg') await viewCfg(); else if (view === 'quadro') await viewQuadro(); else if (view === 'epi') await viewEpi(); else await viewEntity(view);
   } catch (e) { notice(erroTxt(e), true); }
 }
 function ligar() {
@@ -475,7 +537,7 @@ function ligar() {
     e.preventDefault(); const f = e.target, btn = f.querySelector('button[type=submit]');
     try {
       if (f.id === 'ef') await salvarEntidade(f, depois);
-      else if (f.id === 'cfgForm') { const fd2 = new FormData(f); CFG = { ...CFG, id: CFG_ID }; ['unidade', 'lotacao', 'coordNome', 'coordCargo', 'coordCnes'].forEach(k => { CFG[k] = String(fd2.get(k) || '').trim(); }); await salvar('cfg', CFG); limparCache(); notice('Configurações salvas.'); }
+      else if (f.id === 'cfgForm') { const fd2 = new FormData(f); CFG = { ...CFG, id: CFG_ID }; ['unidade', 'lotacao', 'coordNome', 'coordCargo', 'coordCnes'].forEach(k => { CFG[k] = String(fd2.get(k) || '').trim(); }); CFG.epiDias = {}; EPI_REGRAS.forEach(r => { CFG.epiDias[r.k] = num(fd2.get('epi_' + r.k)) || epiPrazo(r); }); await salvar('cfg', CFG); limparCache(); notice('Configurações salvas.'); }
       else if (f.id === 'evForm') {
         if (!EVOL) return; const g = new FormData(f);
         const d = await salvar('evol', { data: hoje(), nome: EVOL.nome, matricula: EVOL.matricula, cargo: EVOL.cargo, setor: EVOL.setor, score: EVOL.calc.score, rec: EVOL.calc.rec, calc: EVOL.calc, nAval: EVOL.nAval, nCond: EVOL.nCond, nAdv: EVOL.nAdv, ia: EVOL.ia, decisao: g.get('decisao'), just: g.get('just') });
@@ -483,8 +545,10 @@ function ligar() {
       }
     } catch (err) { notice(erroTxt(err), true); }
   });
+  c.addEventListener('change', async e => { const t = e.target; if (t.id === 'epSetor') { epiFiltro.setor = t.value; await render(); } else if (t.id === 'epSt') { epiFiltro.st = t.value; await render(); } });
   c.addEventListener('input', e => {
     const t = e.target;
+    if (t.id === 'epBusca') { epiFiltro.q = t.value; clearTimeout(ligar.t2); ligar.t2 = setTimeout(async () => { const pos = t.selectionStart; await render(); const n = $('epBusca'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }, 300); }
     if (t.id === 'busca') { flt[view] = t.value; clearTimeout(ligar.t); ligar.t = setTimeout(async () => { const pos = t.selectionStart; await render(); const n = $('busca'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }, 300); }
     if (t.dataset && t.dataset.colab) {
       const col = achaColab(t.value), f = t.form;
