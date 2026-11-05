@@ -31,7 +31,7 @@
   }).catch(function () {});
   // Abrir direto por link (#fluxo, #dashboard...)
   var h = (location.hash || '').replace('#', '');
-  if (h === 'fluxo' || h === 'epi' || h === 'central' || h === 'pgrss' || h === 'pop' || h === 'rhdp' || h === 'rouparia' || h === 'subhue' || h === 'atestos') h = 'mod-' + h;
+  if (h === 'fluxo' || h === 'epi' || h === 'central' || h === 'pgrss' || h === 'pop' || h === 'rhdp' || h === 'rouparia' || h === 'subhue' || h === 'atestos' || h === 'treinamentos') h = 'mod-' + h;
   if (h && document.getElementById(h) && document.getElementById(h).classList.contains('tab') && h !== 'home') window.goTab(h);
   else afterTab('home');
 })();

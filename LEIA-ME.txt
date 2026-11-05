@@ -122,3 +122,9 @@ código SHA-256), gera o PDF atestado, arquiva original + atestado (coleção at
 opcionalmente, lança o comprovante na Central de Serviços (chamado "Realizado" + PDF anexado) e anexa o PDF como evidência em itens do plano
 SUBHUE. A imagem da assinatura é cadastrada na aba "Assinatura" (fica no bucket privado, nunca no repositório). Não precisa de SQL novo.
 Aviso: é assinatura em imagem com carimbo de verificação, não assinatura digital qualificada (ICP-Brasil/gov.br).
+
+TREINAMENTOS (modulos/treinamentos/)
+Cadastro de treinamento/capacitação local (tema, instrutor, data, hora, duração, local, conteúdo), escolha dos participantes entre os colaboradores
+do módulo EPI (tabela funcionarios) e presença assinada por QR do crachá (o mesmo crachá do EPI) ou reconhecimento facial (mesmas fotos/rostos do EPI).
+Imprime lista de presença (logos Gnosis + SUS), exporta Excel e mostra a frequência/horas por colaborador. Não precisa de SQL novo
+(coleções treinamentos e treinamentos_pres). Câmera exige HTTPS (GitHub Pages ok).

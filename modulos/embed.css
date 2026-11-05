@@ -119,3 +119,15 @@ html.embed[data-mod=atestos] nav button{background:transparent;color:#234866}
 html.embed[data-mod=atestos] nav button.active{background:#123e70;color:#fff}
 html.embed[data-mod=atestos] .secondary{background:#e5edf4;color:#153b61}
 html.embed[data-mod=atestos] .danger,html.embed[data-mod=atestos] .sig .x{background:#9c3030}
+
+/* ---------- treinamentos ---------- */
+html.embed[data-mod=treinamentos]{background:#f3f7fc}
+html.embed[data-mod=treinamentos] body{background:#f3f7fc}
+html.embed[data-mod=treinamentos] header,html.embed[data-mod=treinamentos] footer{display:none}
+html.embed[data-mod=treinamentos] nav{border-radius:12px;margin:14px 16px 0;padding:8px}
+html.embed[data-mod=treinamentos] main{margin:14px auto}
+html.embed[data-mod=treinamentos] button{background:#1f5fa8}
+html.embed[data-mod=treinamentos] nav button{background:transparent;color:#234866}
+html.embed[data-mod=treinamentos] nav button.active{background:#123e70;color:#fff}
+html.embed[data-mod=treinamentos] .secondary{background:#e5edf4;color:#153b61}
+html.embed[data-mod=treinamentos] .danger{background:#9c3030}
