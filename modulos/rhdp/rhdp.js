@@ -33,6 +33,25 @@ async function salvar(col, o) {
   const r = await C().from(T).upsert({ id: d.id, colecao: col, dados: d, atualizado_por: d.atualizadoPor, updated_at: d.atualizadoEm });
   if (r.error) throw r.error; return d;
 }
+async function inserir(col, o) {
+  const d = { ...o }; d.atualizadoEm = new Date().toISOString(); d.atualizadoPor = meuEmail(); d.criadoEm = d.atualizadoEm; d.criadoPor = d.atualizadoPor;
+  const r = await C().from(T).insert({ id: d.id, colecao: col, dados: d, atualizado_por: d.atualizadoPor, updated_at: d.atualizadoEm });
+  if (r.error) throw r.error; return d;
+}
+/* Numeração sequencial por ano, sem repetir: o id do registro É o número (chave primária), então dois
+   salvamentos ao mesmo tempo não geram o mesmo número (o segundo falha e tenta o próximo). Excluídos ficam como "cancelado". */
+async function salvarNumerado(col, o) {
+  const ano = String(o.data || hoje()).slice(0, 4);
+  for (let t = 0; t < 10; t++) {
+    const L = await listar(col);
+    const n = L.filter(r => String(r.numero || '').slice(-4) === ano).map(r => parseInt(String(r.numero), 10) || 0).reduce((m, x) => Math.max(m, x), 0) + 1 + t;
+    const numero = String(n).padStart(2, '0') + '/' + ano, id = `${col}-${ano}-${String(n).padStart(3, '0')}`;
+    try { return await inserir(col, { ...o, id, numero }); }
+    catch (e) { if (!/duplicate|23505|already exists|unique/i.test((e && (e.code + ' ' + e.message)) || '')) throw e; }
+  }
+  throw new Error('Não foi possível gerar um número único. Tente novamente.');
+}
+const vivos = L => L.filter(r => !r.cancelado);
 async function excluir(id) { const r = await C().from(T).delete().eq('id', id); if (r.error) throw r.error; }
 let COLABS = [];
 async function carregarColabs() {
@@ -47,7 +66,7 @@ const achaColab = nome => COLABS.find(c => semAc(c.nome) === semAc(nome));
 
 /* ---------------- configuração (coordenador que assina) ---------------- */
 const CFG_ID = 'rhdp-cfg';
-let CFG = { unidade: 'UPA 24h Rocinha', lotacao: 'SMS UPA 24H ROCINHA', coordNome: 'Luis Felipe W. Seroa da Motta', coordCargo: 'Coordenador Administrativo', coordCnes: '' };
+let CFG = { unidade: 'UPA 24h Rocinha', lotacao: 'SMS UPA 24H ROCINHA', coordNome: 'Luis Felipe W. Seroa da Motta', coordCargo: 'Coordenador Administrativo', coordCnes: '6507409' };
 async function carregarCfg() { const l = await listar('cfg'); const c = l.find(x => x.id === CFG_ID); if (c) CFG = { ...CFG, ...c }; }
 
 /* ---------------- critérios e escalas ---------------- */
@@ -152,7 +171,7 @@ async function viewEntity(k) {
   const q = semAc(flt[k]);
   const lista = L.filter(r => !q || semAc([r.nome, r.matricula, r.cargo, r.numero].join(' ')).indexOf(q) >= 0).sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')));
   const campos = E.f.map(f => campo(f, cur ? cur[f.k] : '')).join('');
-  const linhas = lista.map(r => `<tr>${E.cols.map(c => `<td>${c[1](r)}</td>`).join('')}<td style="white-space:nowrap"><button type="button" class="small" data-act="edit" data-id="${esc(r.id)}">Editar</button><button type="button" class="small secondary" data-act="print" data-id="${esc(r.id)}">Imprimir</button><button type="button" class="small danger" data-act="del" data-id="${esc(r.id)}">Excluir</button></td></tr>`).join('');
+  const linhas = lista.map(r => `<tr${r.cancelado ? ' style="opacity:.5;text-decoration:line-through"' : ''}>${E.cols.map(c => `<td>${c[1](r)}</td>`).join('')}<td style="white-space:nowrap"><button type="button" class="small" data-act="edit" data-id="${esc(r.id)}">Editar</button><button type="button" class="small secondary" data-act="print" data-id="${esc(r.id)}">Imprimir</button><button type="button" class="small danger" data-act="del" data-id="${esc(r.id)}">Excluir</button></td></tr>`).join('');
   $('content').innerHTML = `<section class="view"><h2>${esc(E.t)}</h2><p class="muted">${esc(E.help)}</p>
   <form id="ef" data-k="${k}"><div class="grid">${campos}</div><div id="histBox"></div>
   <div class="actions"><button type="submit">${cur ? 'Salvar alterações' : 'Salvar registro'}</button><button type="submit" class="secondary" data-after="print">Salvar e imprimir</button>${cur ? '<button type="button" class="secondary" data-act="cancelar">Cancelar edição</button>' : ''}</div></form>
@@ -164,7 +183,7 @@ async function viewEntity(k) {
 async function historicoDe(nome, mat) {
   const mesmo = r => (mat && String(r.matricula || '') === String(mat)) || semAc(r.nome) === semAc(nome);
   const [av, co, ad, ev] = await Promise.all([dados('aval'), dados('cond'), dados('adv'), dados('evol')]);
-  return { aval: av.filter(mesmo), cond: co.filter(mesmo), adv: ad.filter(mesmo), evol: ev.filter(mesmo) };
+  return { aval: vivos(av).filter(mesmo), cond: vivos(co).filter(mesmo), adv: vivos(ad).filter(mesmo), evol: ev.filter(mesmo) };
 }
 async function atualizaHist() {
   const f = $('ef'); if (!f || !f.elements.nome) return; const box = $('histBox'); if (!box) return;
@@ -172,13 +191,12 @@ async function atualizaHist() {
   const h = await historicoDe(nome, f.elements.matricula ? f.elements.matricula.value : '');
   const partes = [];
   if (h.aval.length) partes.push(`${h.aval.length} avaliação(ões)`); if (h.cond.length) partes.push(`${h.cond.length} orientação(ões) de conduta`); if (h.adv.length) partes.push(`${h.adv.length} advertência(s)`);
-  box.innerHTML = partes.length ? `<div class="box2"><b>Histórico deste colaborador no sistema:</b> ${partes.join(' · ')}. ${h.adv.length || h.cond.length ? 'Considere a progressividade das medidas (orientação → advertência → suspensão) e a proporcionalidade.' : ''}</div>` : '<div class="box2 muted">Sem registros anteriores deste colaborador no sistema.</div>';
+  box.innerHTML = (f.dataset.k === 'cond' ? `<div class="box2"><b>Esta será a ${h.cond.length + 1}ª orientação de conduta deste colaborador.</b></div>` : '') + (partes.length ? `<div class="box2"><b>Histórico deste colaborador no sistema:</b> ${partes.join(' · ')}. ${h.adv.length || h.cond.length ? 'Considere a progressividade das medidas (orientação → advertência → suspensão) e a proporcionalidade.' : ''}</div>` : '<div class="box2 muted">Sem registros anteriores deste colaborador no sistema.</div>');
 }
 async function salvarEntidade(form, depois) {
   const k = form.dataset.k, E = ENT[k], L = await dados(E.col), cur = ed[k] ? L.find(r => r.id === ed[k]) : null;
   const o = lerCampos(form, E.f, cur || {});
-  if (E.numerar && !o.numero) o.numero = await proxNumero(E.col, o.data);
-  const d = await salvar(E.col, o); limparCache(); ed[k] = null;
+  const d = (E.numerar && !o.numero) ? await salvarNumerado(E.col, o) : await salvar(E.col, o); limparCache(); ed[k] = null;
   notice(cur ? 'Registro atualizado.' : 'Registro salvo.');
   await render();
   if (depois === 'print') imprimirDoc(k, d);
@@ -343,7 +361,7 @@ function imprimirHtml(html) { const root = $('printRoot'); root.innerHTML = `<di
 
 /* ---------------- Painel ---------------- */
 async function viewPainel() {
-  const [av, co, ad, de] = await Promise.all([dados('aval'), dados('cond'), dados('adv'), dados('desl')]);
+  const [av, co, ad, de] = (await Promise.all([dados('aval'), dados('cond'), dados('adv'), dados('desl')])).map(vivos);
   const ano = hoje().slice(0, 4), noAno = L => L.filter(r => String(r.data || '').slice(0, 4) === ano).length;
   const alertas = [];
   COLABS.forEach(c => {
@@ -356,8 +374,24 @@ async function viewPainel() {
   if (des.length) alertas.push(['warn', `${des.length} desligamento(s) com providências incompletas.`]);
   $('content').innerHTML = `<section class="view"><h2>Painel de RH e DP</h2><p class="muted">Dados protegidos: visíveis só para os coordenadores cadastrados. ${COLABS.length} colaborador(es) na base (RH/EPI).</p>
   <div class="stats"><div class="stat">Avaliações em ${ano}<strong>${noAno(av)}</strong></div><div class="stat">Orientações em ${ano}<strong>${noAno(co)}</strong></div><div class="stat warn">Advertências em ${ano}<strong>${noAno(ad)}</strong></div><div class="stat">Desligamentos em ${ano}<strong>${noAno(de)}</strong></div></div>
+  ${dashQualidade(av, co, ad, ano)}
   <h3>Alertas</h3>${alertas.length ? alertas.map(a => `<div class="alert ${a[0]}"><b>${a[0] === 'bad' ? '⛔' : '⚠'}</b><span>${esc(a[1])}</span></div>`).join('') : '<div class="alert ok"><b>✔</b><span>Nenhuma avaliação de experiência pendente.</span></div>'}
   <h3>Como usar</h3><ol><li>Faça a <b>Avaliação de experiência</b> aos 45 e aos 90 dias.</li><li>Registre <b>Orientações de conduta</b> e <b>Advertências</b> quando necessário.</li><li>No <b>Relatório de evolução</b>, o sistema soma tudo e recomenda continuar, acompanhar ou não continuar (apoio à decisão).</li><li>Se houver desligamento, preencha o <b>Relatório de desligamento</b> e as providências.</li></ol></section>`;
+}
+function dashQualidade(av, co, ad, ano) {
+  const por = new Map();
+  const reg = (r, k) => { const key = r.matricula ? 'm' + r.matricula : 'n' + semAc(r.nome); const o = por.get(key) || { nome: r.nome, cond: 0, condAno: 0, adv: 0, aval: [], ult: '' }; if (k === 'aval') { const m = mediaCrit(r.crit); if (m) o.aval.push(m); } else { o[k]++; if (String(r.data || '').slice(0, 4) === ano && k === 'cond') o.condAno++; if (String(r.data) > o.ult) o.ult = r.data; } por.set(key, o); };
+  co.forEach(r => reg(r, 'cond')); ad.forEach(r => reg(r, 'adv')); av.forEach(r => reg(r, 'aval'));
+  const L = Array.from(por.values()).sort((a, b) => b.cond - a.cond || b.adv - a.adv || a.nome.localeCompare(b.nome));
+  const max = Math.max(1, ...L.map(x => x.cond));
+  const meses = {}; co.forEach(r => { const m = String(r.data || '').slice(0, 7); if (m) meses[m] = (meses[m] || 0) + 1; });
+  const ml = Object.keys(meses).sort().slice(-8), mm = Math.max(1, ...ml.map(m => meses[m]));
+  const reinc = L.filter(x => x.cond >= 3 || (x.cond >= 1 && x.adv >= 1));
+  return `<h3>Qualidade: orientações e advertências por colaborador</h3>
+  <div class="box2">${L.filter(x => x.cond).map(x => `<div class="barrow"><span>${esc(x.nome)}</span><div class="bar"><i style="width:${x.cond / max * 100}%;background:${x.cond >= 3 ? '#c0392b' : '#2672ce'}"></i></div><b>${x.cond}</b></div>`).join('') || '<p class="muted">Nenhuma orientação registrada.</p>'}<p class="muted">Vermelho = 3 ou mais orientações (reincidência).</p></div>
+  ${reinc.length ? `<div class="alert warn"><b>⚠</b><span>Atenção à reincidência: ${reinc.map(x => esc(x.nome) + ' (' + x.cond + ' orient., ' + x.adv + ' adv.)').join('; ')}.</span></div>` : ''}
+  <div class="box2"><b>Orientações por mês</b>${ml.map(m => `<div class="barrow"><span>${m.slice(5)}/${m.slice(0, 4)}</span><div class="bar"><i style="width:${meses[m] / mm * 100}%;background:#12805c"></i></div><b>${meses[m]}</b></div>`).join('') || '<p class="muted">Sem dados.</p>'}</div>
+  <div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Orientações (total)</th><th>Em ${ano}</th><th>Advertências</th><th>Média das avaliações</th><th>Última ocorrência</th></tr></thead><tbody>${L.map(x => `<tr><td><b>${esc(x.nome)}</b></td><td>${x.cond}</td><td>${x.condAno}</td><td>${x.adv}</td><td>${x.aval.length ? (x.aval.reduce((s, v) => s + v, 0) / x.aval.length).toFixed(1) : '—'}</td><td>${fd(x.ult)}</td></tr>`).join('') || '<tr><td colspan="6">Sem registros.</td></tr>'}</tbody></table></div>`;
 }
 async function viewCfg() {
   $('content').innerHTML = `<section class="view"><h2>Configurações dos documentos</h2><p class="muted">Dados que saem no cabeçalho e nas assinaturas.</p>
@@ -372,7 +406,10 @@ const acoes = {
   async edit(d) { ed[view] = d.id; await render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
   async cancelar() { ed[view] = null; await render(); },
   async print(d) { const r = (await dados(ENT[view].col)).find(x => x.id === d.id); if (r) await imprimirDoc(view, r); },
-  async del(d) { if (!confirm('Excluir este registro?')) return; await excluir(d.id); limparCache(); notice('Registro excluído.'); await render(); },
+  async del(d) {
+    const E = ENT[view];
+    if (E.numerar) { if (!confirm('Este documento é numerado. Ele será marcado como CANCELADO (o número não é reutilizado e deixa de contar nos indicadores). Continuar?')) return; const r = (await dados(E.col)).find(x => x.id === d.id); await salvar(E.col, { ...r, cancelado: true, canceladoEm: hoje() }); limparCache(); notice('Documento cancelado.'); await render(); return; }
+    if (!confirm('Excluir este registro?')) return; await excluir(d.id); limparCache(); notice('Registro excluído.'); await render(); },
   async redigir(d, b) { await redigir(d, b); },
   async analisar() { await analisar(); },
   async parecerIA(d, b) { await parecerIA(b); },
