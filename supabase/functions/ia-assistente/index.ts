@@ -32,7 +32,8 @@ Formato: {"assunto":"string","corpo":"string (carta completa, parágrafos separa
 };
 
 function json(corpo: unknown, status = 200) {
-  return new Response(JSON.stringify(corpo), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+  // sempre 200: o motivo do erro vai no corpo ({erro}) para a tela poder mostrá-lo
+  return new Response(JSON.stringify(corpo), { status: 200, headers: { ...CORS, "Content-Type": "application/json" } });
 }
 function extrair(texto: string) {
   let t = texto.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();

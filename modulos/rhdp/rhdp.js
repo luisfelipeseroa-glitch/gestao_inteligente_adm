@@ -203,9 +203,13 @@ async function salvarEntidade(form, depois) {
 }
 
 /* ---------------- IA / regras: redação ---------------- */
+async function motivoIA(e) {
+  try { const c = e.context; if (c && c.json) { const j = await c.json(); if (j && j.erro) return j.erro + (j.detalhe ? ' — ' + j.detalhe : ''); } else if (c && c.status === 404) return 'função ia-assistente não encontrada neste projeto'; } catch (x) { /* segue */ }
+  return (e && e.message) || 'IA indisponível';
+}
 async function ia(tarefa, d) {
   const r = await C().functions.invoke('ia-assistente', { body: { tarefa, dados: d } });
-  if (r.error) throw new Error((r.error.message || 'IA indisponível') + '');
+  if (r.error) throw new Error(await motivoIA(r.error));
   if (!r.data || r.data.erro) throw new Error((r.data && r.data.erro) || 'IA indisponível');
   return r.data.conteudo;
 }

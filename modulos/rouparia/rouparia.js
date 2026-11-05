@@ -245,9 +245,9 @@ async function gerarCarta(b) {
   b.disabled = true; const t0 = b.textContent; b.textContent = 'Criando…';
   try {
     const r = await UPA.client().functions.invoke('ia-assistente', { body: { tarefa: 'carta', dados: { motivo, tom, detalhes: extra, remetente: CFG.coordNome + ', ' + CFG.coordCargo + ' — UPA 24h Rocinha', fornecedor: CFG.fornecedor, contrato: CFG.contrato, itens_do_contrato: ['lençol', 'camisola', 'cobertor'], tolerancia_pct: CFG.tolerancia, notas: dadosCarta(marc) } } });
-    if (r.error || !r.data || r.data.erro) throw new Error(r.error ? r.error.message : r.data.erro);
+    if (r.error || !r.data || r.data.erro) { let m = r.error ? r.error.message : r.data.erro; try { const j = r.error && r.error.context && await r.error.context.json(); if (j && j.erro) m = j.erro + (j.detalhe ? ' — ' + j.detalhe : ''); } catch (x) { /* segue */ } throw new Error(m); }
     const c = r.data.conteudo; CARTA = { assunto: c.assunto, corpo: c.corpo, conselhos: c.conselhos, alertas: c.alertas, notas: sel };
-  } catch (e) { CARTA = { ...cartaLocal(marc, motivo, tom, extra), notas: sel }; notice('IA indisponível — usei o modelo-padrão de carta. Revise e complete.', true); }
+  } catch (e) { CARTA = { ...cartaLocal(marc, motivo, tom, extra), notas: sel }; notice('IA indisponível (' + (e.message || e) + ') — usei o modelo-padrão de carta. Revise e complete.', true); }
   finally { b.disabled = false; b.textContent = t0; }
   $('cartaBox').innerHTML = htmlCarta();
 }
