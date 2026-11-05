@@ -104,7 +104,7 @@ Configuração (uma vez):
 1. SQL Editor do Supabase: rode sql/pop.sql (se ainda não rodou) e DEPOIS sql/rhdp.sql.
    Os dados de RH ficam em tabela protegida: só quem está ativo em POP > Signatários consegue ler/gravar.
    (Cadastre seu e-mail e os dos coordenadores lá; se a lista estiver vazia o acesso fica aberto a todos logados.)
-2. IA: supabase functions deploy ia-assistente   (usa o mesmo segredo ANTHROPIC_API_KEY do POP; opcional IA_MODEL).
+2. IA: publique a função ia-assistente (painel Supabase > Edge Functions, ou: npx supabase functions deploy ia-assistente) e cadastre em Secrets GROQ_API_KEY (Groq, gratuito) ou ANTHROPIC_API_KEY (Claude). Opcional: GROQ_MODEL, IA_MODEL.
    Sem a função, os módulos funcionam com regras e modelos locais.
 3. Rouparia: em Configurações informe fornecedor, tolerância de peso (%) e valor por kg.
 A recomendação da IA/sistema é apoio à decisão: a decisão final é sempre do gestor, com RH/jurídico.

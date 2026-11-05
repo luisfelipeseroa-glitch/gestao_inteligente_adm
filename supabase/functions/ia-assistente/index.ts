@@ -45,8 +45,9 @@ function extrair(texto: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ erro: "Use POST." }, 405);
-  const chave = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!chave) return json({ erro: "ANTHROPIC_API_KEY não configurada no Supabase (supabase secrets set)." }, 500);
+  // Provedor: usa Groq se GROQ_API_KEY existir; senão, Anthropic (ANTHROPIC_API_KEY).
+  const groq = Deno.env.get("GROQ_API_KEY"), chave = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!groq && !chave) return json({ erro: "Nenhuma chave configurada: cadastre GROQ_API_KEY ou ANTHROPIC_API_KEY nos Secrets do Supabase." }, 500);
 
   let entrada: any;
   try { entrada = await req.json(); } catch { return json({ erro: "JSON inválido." }, 400); }
@@ -55,19 +56,35 @@ Deno.serve(async (req) => {
   if (!sistema) return json({ erro: "Tarefa desconhecida." }, 400);
   const dados = JSON.stringify(entrada?.dados ?? {}).slice(0, 24000);
 
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "x-api-key": chave, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({
-      model: Deno.env.get("IA_MODEL") || "claude-sonnet-5-5",
-      max_tokens: 3500,
-      system: sistema,
-      messages: [{ role: "user", content: `Dados (JSON):\n${dados}` }],
-    }),
-  });
-  if (!resp.ok) return json({ erro: `Falha na API do Claude (${resp.status}).`, detalhe: (await resp.text()).slice(0, 300) }, 502);
-  const d = await resp.json();
-  const texto = (d?.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("");
-  try { return json({ conteudo: extrair(texto), modelo: d?.model || null }); }
+  let texto = "", modelo: string | null = null;
+  if (groq) {
+    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${groq}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        model: Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile",
+        max_tokens: 3500, temperature: 0.3, response_format: { type: "json_object" },
+        messages: [{ role: "system", content: sistema + "\nResponda SOMENTE com um objeto JSON válido, em português do Brasil." }, { role: "user", content: `Dados (JSON):\n${dados}` }],
+      }),
+    });
+    if (!resp.ok) return json({ erro: `Falha na API do Groq (${resp.status}).`, detalhe: (await resp.text()).slice(0, 300) }, 502);
+    const d = await resp.json();
+    texto = d?.choices?.[0]?.message?.content || ""; modelo = d?.model || null;
+  } else {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": chave!, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({
+        model: Deno.env.get("IA_MODEL") || "claude-sonnet-5-5",
+        max_tokens: 3500,
+        system: sistema,
+        messages: [{ role: "user", content: `Dados (JSON):\n${dados}` }],
+      }),
+    });
+    if (!resp.ok) return json({ erro: `Falha na API do Claude (${resp.status}).`, detalhe: (await resp.text()).slice(0, 300) }, 502);
+    const d = await resp.json();
+    texto = (d?.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join(""); modelo = d?.model || null;
+  }
+  try { return json({ conteudo: extrair(texto), modelo }); }
   catch (e) { return json({ erro: "Resposta da IA fora do formato esperado. Tente de novo.", detalhe: String(e).slice(0, 200) }, 502); }
 });
