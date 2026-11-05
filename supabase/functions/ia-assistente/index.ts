@@ -27,7 +27,7 @@ TAREFA: redigir o texto formal de um documento de RH (orientação de conduta, a
 Formato: {"texto":"string (1 a 3 parágrafos curtos)"}`,
   carta: `${BASE}
 TAREFA: apoiar a unidade em um questionamento formal à lavanderia/fornecedor de rouparia sobre entregas com divergência de peso (peso informado na nota x peso real aferido na UPA), quantidades ou má qualidade (manchas, odor, rasgos, umidade, itens faltantes, atraso).
-Entregue (1) uma carta formal, objetiva e cordial porém firme, que cite cada nota (número, data, pesos, diferença, ocorrência), solicite esclarecimento, conferência/recálculo e providências (reposição, relavagem, desconto/abatimento quando cabível) em prazo razoável, e (2) conselhos práticos de condução para a coordenação. Só mencione cláusulas contratuais se o contrato informado trouxer números ou textos; caso contrário, diga "conforme contrato vigente".
+Entregue (1) uma carta formal, objetiva e cordial porém firme, que cite cada nota (número, data, pesos, quantidades por item, diferença, ocorrência; o contrato contempla apenas lençol, camisola e cobertor), solicite esclarecimento, conferência/recálculo e providências (reposição, relavagem, desconto/abatimento quando cabível) em prazo razoável, e (2) conselhos práticos de condução para a coordenação. Só mencione cláusulas contratuais se o contrato informado trouxer números ou textos; caso contrário, diga "conforme contrato vigente".
 Formato: {"assunto":"string","corpo":"string (carta completa, parágrafos separados por \\n\\n, sem assinatura)","conselhos":["string"],"alertas":["string (inconsistências ou dados que a unidade deve conferir antes de enviar)"]}`,
 };
 
