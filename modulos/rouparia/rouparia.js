@@ -246,7 +246,7 @@ async function gerarCarta(b) {
   try {
     const r = await UPA.client().functions.invoke('ia-assistente', { body: { tarefa: 'carta', dados: { motivo, tom, detalhes: extra, remetente: CFG.coordNome + ', ' + CFG.coordCargo + ' — UPA 24h Rocinha', fornecedor: CFG.fornecedor, contrato: CFG.contrato, itens_do_contrato: ['lençol', 'camisola', 'cobertor'], tolerancia_pct: CFG.tolerancia, notas: dadosCarta(marc) } } });
     if (r.error || !r.data || r.data.erro) { let m = r.error ? r.error.message : r.data.erro + (r.data.detalhe ? ' — ' + r.data.detalhe : ''); try { const j = r.error && r.error.context && await r.error.context.json(); if (j && j.erro) m = j.erro + (j.detalhe ? ' — ' + j.detalhe : ''); } catch (x) { /* segue */ } throw new Error(m); }
-    const c = r.data.conteudo; CARTA = { assunto: c.assunto, corpo: c.corpo, conselhos: c.conselhos, alertas: c.alertas, notas: sel };
+    const c = r.data.conteudo, ar = v => Array.isArray(v) ? v.map(x => typeof x === 'string' ? x : JSON.stringify(x)) : (v ? String(v).split(/\n+/).filter(Boolean) : []); CARTA = { assunto: String(c.assunto || ''), corpo: String(c.corpo || ''), conselhos: ar(c.conselhos), alertas: ar(c.alertas), notas: sel };
   } catch (e) { CARTA = { ...cartaLocal(marc, motivo, tom, extra), notas: sel }; notice('IA indisponível (' + (e.message || e) + ') — usei o modelo-padrão de carta. Revise e complete.', true); }
   finally { b.disabled = false; b.textContent = t0; }
   $('cartaBox').innerHTML = htmlCarta();

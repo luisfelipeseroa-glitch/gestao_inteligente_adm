@@ -203,6 +203,12 @@ async function salvarEntidade(form, depois) {
 }
 
 /* ---------------- IA / regras: redação ---------------- */
+const arr = v => Array.isArray(v) ? v.map(x => typeof x === 'string' ? x : JSON.stringify(x)) : (v == null || v === '' ? [] : String(v).split(/\n+|;\s+/).map(x => x.replace(/^[-•*\d.)\s]+/, '').trim()).filter(Boolean));
+function normIA(o) {
+  o = o || {}; const rec = String(o.recomendacao || '').toLowerCase();
+  const r = /nao_continuar|não|desligar/.test(rec) ? 'nao_continuar' : /acompanh|prorrog/.test(rec) ? 'continuar_com_acompanhamento' : 'continuar';
+  return { ...o, recomendacao: r, confianca: String(o.confianca || ''), resumo: String(o.resumo || ''), pontos_fortes: arr(o.pontos_fortes), pontos_atencao: arr(o.pontos_atencao), plano_desenvolvimento: arr(o.plano_desenvolvimento), cuidados_formais: arr(o.cuidados_formais) };
+}
 async function motivoIA(e) {
   try { const c = e.context; if (c && c.json) { const j = await c.json(); if (j && j.erro) return j.erro + (j.detalhe ? ' — ' + j.detalhe : ''); } else if (c && c.status === 404) return 'função ia-assistente não encontrada neste projeto'; } catch (x) { /* segue */ }
   return (e && e.message) || 'IA indisponível';
@@ -295,7 +301,7 @@ function resumoParaIA() {
 }
 async function parecerIA(b) {
   b.disabled = true; const t0 = b.textContent; b.textContent = 'Analisando…';
-  try { EVOL.ia = await ia('evolucao', resumoParaIA()); }
+  try { EVOL.ia = normIA(await ia('evolucao', resumoParaIA())); }
   catch (e) { EVOL.ia = parecerLocal(); notice('IA indisponível (' + erroTxt(e) + '). Mostrando o parecer do modelo local.', true); }
   $('evRes').innerHTML = htmlEvol();
 }
