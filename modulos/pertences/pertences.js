@@ -15,7 +15,7 @@ const PARENT = ['Próprio paciente', 'Pai / mãe', 'Filho(a)', 'Cônjuge / compa
 const DOCS = ['RG', 'CPF', 'CNH', 'Passaporte', 'Outro'];
 const CFG0 = { salas: ['Sala da Coordenação ADM (caixa de pertences)'], gestores: [] };
 let view = 'lista', LIST = [], CFG = { ...CFG0 }, curId = null, stream = null, qrTimer = null, f = { q: '', st: '' }, ultimoPend = null;
-let fotosNovas = [], docFoto = null, sigBlob = null;
+let fotosNovas = [], docFoto = null, sigBlob = null, FUNCS = [], CONFS = [], testemunha = null;
 
 function notice(t, erro) { const m = $('message'); m.textContent = t || ''; m.className = erro ? 'err' : ''; if (t) m.scrollIntoView({ block: 'nearest' }); }
 const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem('pert_' + k) || ''; localStorage.setItem('pert_' + k, v); } catch (e) { return ''; } };
@@ -25,7 +25,8 @@ const token = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), b => 
 
 /* ---------- dados ---------- */
 async function carregar() {
-  const [l, c] = await Promise.all([UPA.db.list(col), UPA.db.list(C_CFG)]);
+  const [l, c, cf2, fu] = await Promise.all([UPA.db.list(col), UPA.db.list(C_CFG), UPA.db.list('pertences_conf'), UPA.client().from('funcionarios').select('id,nome,matricula,qr_token,ativo')]);
+  FUNCS = (fu && fu.data) || []; CONFS = cf2.map(r => r.dados).sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
   LIST = l.map(r => r.dados).sort((a, b) => String(b.numero).localeCompare(String(a.numero)));
   const cf = c.find(r => r.id === 'cfg'); CFG = { ...CFG0, ...(cf ? cf.dados : {}) };
 }
@@ -51,19 +52,19 @@ async function criarEtiquetas(n) {
 }
 
 /* ---------- navegação ---------- */
-const VIEWS = [['lista', 'Pertences'], ['ler', 'Ler QR'], ['pend', 'Pendentes de liberação'], ['novo', 'Novo acautelamento'], ['etq', 'Etiquetas'], ['cfg', 'Configurações']];
-function nav() { $('nav').innerHTML = VIEWS.map(v => { const n = v[0] === 'pend' ? pend().length : 0; return `<button type="button" data-v="${v[0]}" class="${v[0] === view || (view === 'det' && v[0] === 'lista') ? 'active' : ''}">${v[1]}${n ? ` <span class="st s">${n}</span>` : ''}</button>`; }).join(''); document.querySelectorAll('#nav [data-v]').forEach(b => b.onclick = () => { pararCam(); if (b.dataset.v === 'novo') curId = null; view = b.dataset.v; render(); }); }
-const abrir = id => { pararCam(); curId = id; view = 'det'; render(); };
+const VIEWS = [['lista', 'Pertences'], ['ler', 'Ler QR'], ['pend', 'Pendentes de liberação'], ['novo', 'Novo acautelamento'], ['conf', 'Conferência da caixa'], ['etq', 'Etiquetas'], ['cfg', 'Configurações']];
+function nav() { $('nav').innerHTML = VIEWS.map(v => { const n = v[0] === 'pend' ? pend().length : 0; return `<button type="button" data-v="${v[0]}" class="${v[0] === view || (view === 'det' && v[0] === 'lista') ? 'active' : ''}">${v[1]}${n ? ` <span class="st s">${n}</span>` : ''}</button>`; }).join(''); document.querySelectorAll('#nav [data-v]').forEach(b => b.onclick = () => { pararCam(); if (b.dataset.v === 'novo') curId = null; if (b.dataset.v !== 'conf') confSess = null; view = b.dataset.v; render(); }); }
+const abrir = id => { pararCam(); confSess = confSess && view === 'conf' ? confSess : confSess; curId = id; view = 'det'; render(); };
 
 /* ---------- câmera / QR ---------- */
 function pararCam() { if (qrTimer) { clearInterval(qrTimer); qrTimer = null; } if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } }
-async function lerQR(aoLer) {
+async function lerQR(aoLer, aoCracha) {
   if (typeof jsQR === 'undefined') { notice('Leitor de QR não carregou (verifique a internet).', true); return; }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { notice('Este navegador não permite usar a câmera (é preciso HTTPS).', true); return; }
   try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } }, audio: false }); } catch (e) { notice('Não consegui acessar a câmera: ' + e.message, true); return; }
   const v = $('vid'); v.srcObject = stream; await v.play(); $('camBox').classList.remove('hidden');
   const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true }); let oc = false;
-  qrTimer = setInterval(() => { if (oc || !v.videoWidth) return; oc = true; try { const w = Math.min(1280, v.videoWidth), h = Math.round(v.videoHeight * w / v.videoWidth); cv.width = w; cv.height = h; cx.drawImage(v, 0, 0, w, h); const r = jsQR(cx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' }); if (r && r.data) { const t = String(r.data).trim(); if (t.indexOf(QR_P) === 0) { const p = LIST.find(x => x.token === t.slice(QR_P.length).toLowerCase()); pararCam(); if (p) aoLer(p); else notice('Etiqueta não encontrada neste sistema.', true); } } } catch (e) { } oc = false; }, 250);
+  qrTimer = setInterval(() => { if (oc || !v.videoWidth) return; oc = true; try { const w = Math.min(1280, v.videoWidth), h = Math.round(v.videoHeight * w / v.videoWidth); cv.width = w; cv.height = h; cx.drawImage(v, 0, 0, w, h); const r = jsQR(cx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' }); if (r && r.data) { const t = String(r.data).trim(); if (aoCracha && t.indexOf('EPIUPA:') === 0) { const fu = FUNCS.find(x => x.ativo && x.qr_token && x.qr_token === t.slice(7).toLowerCase()); pararCam(); $('camBox').classList.add('hidden'); if (fu) aoCracha(fu); else notice('Crachá não reconhecido ou colaborador inativo.', true); } else if (t.indexOf(QR_P) === 0 && aoLer) { const p = LIST.find(x => x.token === t.slice(QR_P.length).toLowerCase()); pararCam(); if (p) aoLer(p); else notice('Etiqueta não encontrada neste sistema.', true); } } } catch (e) { } oc = false; }, 250);
 }
 const qrSvg = t => { const q = qrcode(0, 'M'); q.addData(t); q.make(); const n = q.getModuleCount(); let d = ''; for (let r = 0; r < n; r++)for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += 'M' + c + ',' + r + 'h1v1h-1z'; return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges"><path d="${d}" fill="#000"/></svg>`; };
 
@@ -75,7 +76,7 @@ function viewLista() {
   ${pend().length ? `<div class="alerta-pend"><b>🔔 ${pend().length} solicitação(ões) de liberação aguardando autorização.</b> <button type="button" class="small" id="vaiPend">Ver</button></div>` : ''}
   <div class="stats"><div class="stat ok">Guardados agora<strong>${gu.length}</strong></div><div class="stat warn">Há mais de 30 dias<strong>${antigos}</strong></div><div class="stat">Etiquetas livres<strong>${LIST.filter(p => p.status === S.LIVRE).length}</strong></div></div>
   <div class="grid"><label class="fld">Busca<input id="fq" value="${esc(f.q)}" placeholder="número, paciente, BAM, sala"></label><label class="fld">Situação<select id="fst"><option value="">Todas (exceto livres)</option>${Object.values(S).map(s => `<option${f.st === s ? ' selected' : ''}>${s}</option>`).join('')}</select></label></div>
-  ${L.length ? `<div class="table-wrap"><table><thead><tr><th>Nº</th><th>Paciente</th><th>BAM</th><th>Sala</th><th>Acautelado em</th><th>Situação</th><th></th></tr></thead><tbody>${L.map(p => `<tr><td><b>${esc(p.numero)}</b></td><td>${esc(p.paciente || '—')}</td><td>${esc(p.bam || '')}</td><td>${esc(p.sala || '')}</td><td>${dh(p.guardadoEm)}</td><td><span class="st ${cls(p.status)}">${esc(p.status)}</span></td><td><button type="button" class="small" data-a="${esc(p.id)}">Abrir</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Nada encontrado.</p>'}</section>`;
+  ${L.length ? `<div class="table-wrap"><table><thead><tr><th>Nº</th><th>Paciente</th><th>BAM</th><th>Sala</th><th>Acautelado em</th><th>Situação</th><th></th></tr></thead><tbody>${L.map(p => `<tr><td><b>${esc(p.numero)}</b></td><td>${esc(p.paciente || '—')}</td><td>${esc(p.bam || '')}</td><td>${esc(p.sala || '')}</td><td>${dh(p.guardadoEm)}</td><td><span class="st ${cls(p.status)}">${esc(p.status)}</span>${p.violacao ? ' <span class="st" style="background:#fde4e1;color:#a51e30">lacre!</span>' : ''}</td><td><button type="button" class="small" data-a="${esc(p.id)}">Abrir</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Nada encontrado.</p>'}</section>`;
   $('fq').oninput = e => { f.q = e.target.value; clearTimeout(window.__t); window.__t = setTimeout(viewLista, 250); };
   $('fst').onchange = e => { f.st = e.target.value; viewLista(); };
   document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => abrir(b.dataset.a));
@@ -103,18 +104,25 @@ function formAcautelar(p, novo) {
   <label class="fld">Sala / local onde ficam guardados<input name="sala" list="dlSala" required value="${esc(p.sala || salas[0])}"><datalist id="dlSala">${salas.map(s => `<option value="${esc(s)}">`).join('')}</datalist></label>
   <label class="fld">Acautelado por (colaborador)<input name="por" required value="${esc(p.guardadoPor || ls('quem'))}"></label>
   <label class="fld full">Itens no envelope (descreva com detalhes: valores, aparelhos, joias, documentos…)<textarea name="itens" required>${esc(p.itens || '')}</textarea></label>
-  <label class="fld full">Foto dos itens (opcional)<input type="file" id="fFotos" accept="image/*" capture="environment" multiple></label></div>
+  <label class="fld">Nº do lacre do saco/envelope<input name="lacre" required value="${esc(p.lacre || '')}" autocomplete="off"></label>
+  <label class="fld full">Foto dos itens (opcional)<input type="file" id="fFotos" accept="image/*" capture="environment" multiple></label>
+  <label class="fld full">Foto do saco já lacrado (recomendado — mostra o lacre e a etiqueta)<input type="file" id="fSaco" accept="image/*" capture="environment"></label></div>
+  ${novo ? `<h4>Testemunha</h4><p class="muted">Um segundo colaborador confirma lendo o QR do próprio crachá, depois de contar os itens com você.</p><div class="actions"><button type="button" class="secondary" id="bTest">📷 Ler crachá da testemunha</button></div><div class="cam hidden" id="camBox"><video id="vid" playsinline muted></video></div><p id="testInfo" class="muted">Testemunha: nenhuma</p><label class="fld">Sem testemunha disponível? Justifique<input name="semTest" placeholder="Preencha só se não houver testemunha"></label>` : ''}
   <div class="actions"><button type="submit">${novo ? 'Guardar e gerar etiqueta' : 'Salvar'}</button><button type="button" class="secondary" id="afCanc">Cancelar</button></div></form>`;
 }
 async function salvarAcaut(e, p) {
   e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); ls('quem', d.por.trim()); const btn = e.target.querySelector('[type=submit]'); btn.disabled = true;
   try {
+    const primeira0 = p.status === S.LIVRE;
+    if (primeira0 && !testemunha && !(d.semTest || '').trim()) { notice('Leia o crachá da testemunha ou justifique a ausência.', true); btn.disabled = false; return; }
+    if (primeira0 && testemunha && semAc(testemunha.nome) === semAc(d.por)) { notice('A testemunha precisa ser outra pessoa.', true); btn.disabled = false; return; }
     const fotos = (p.fotos || []).slice(), files = $('fFotos').files;
+    if ($('fSaco').files[0]) { const b = await comprimir($('fSaco').files[0]), path = `pertences/${p.id}/saco-${Date.now().toString(36)}.jpg`; await UPA.files.upload(path, b, 'image/jpeg'); p.fotoSaco = path; }
     for (let i = 0; i < files.length && fotos.length < 6; i++) { const b = await comprimir(files[i]), path = `pertences/${p.id}/item-${Date.now().toString(36)}-${i}.jpg`; await UPA.files.upload(path, b, 'image/jpeg'); fotos.push(path); }
     const primeira = p.status === S.LIVRE;
-    Object.assign(p, { paciente: d.paciente.trim(), bam: d.bam.trim(), sala: d.sala.trim(), itens: d.itens.trim(), guardadoPor: d.por.trim(), fotos }); if (primeira) { p.status = S.GUARD; p.guardadoEm = new Date().toISOString(); }
+    Object.assign(p, { paciente: d.paciente.trim(), bam: d.bam.trim(), sala: d.sala.trim(), itens: d.itens.trim(), guardadoPor: d.por.trim(), lacre: d.lacre.trim(), fotos }); if (primeira) { p.testemunha = testemunha ? { nome: testemunha.nome, matricula: testemunha.matricula || '' } : { nome: '', justificativa: (d.semTest || '').trim() }; } if (primeira) { p.status = S.GUARD; p.guardadoEm = new Date().toISOString(); }
     if (!CFG.salas.includes(p.sala)) { CFG.salas = CFG.salas.concat([p.sala]); await UPA.db.put(C_CFG, 'cfg', CFG); }
-    await salvar(p, { tipo: primeira ? 'Acautelado' : 'Dados editados', quem: d.por.trim() });
+    await salvar(p, { tipo: primeira ? 'Acautelado' : 'Dados editados', quem: d.por.trim(), obs: primeira ? 'Lacre ' + p.lacre + (testemunha ? ' · testemunha ' + testemunha.nome : ' · sem testemunha: ' + (d.semTest || '').trim()) : '' }); testemunha = null;
     notice(primeira ? 'Pertences acautelados. Cole a etiqueta no saco/envelope.' : 'Dados salvos.'); abrir(p.id);
   } catch (er) { notice(UPA.msg(er), true); btn.disabled = false; }
 }
@@ -132,9 +140,10 @@ async function viewDet() {
   const p = get(curId); if (!p) { view = 'lista'; return render(); }
   if (p.status === S.LIVRE) {
     $('content').innerHTML = `<section class="view"><h2>Etiqueta <span class="big-n">${esc(p.numero)}</span> <span class="st">livre</span></h2><p class="muted">Cadastre o que está no envelope.</p>${formAcautelar(p, true)}</section>`;
-    $('af').onsubmit = e => salvarAcaut(e, p); $('afCanc').onclick = () => { view = 'lista'; render(); }; return;
+    testemunha = null; $('af').onsubmit = e => salvarAcaut(e, p); $('afCanc').onclick = () => { view = 'lista'; render(); };
+    $('bTest').onclick = () => lerQR(null, fu => { testemunha = fu; $('testInfo').innerHTML = '✔ Testemunha: <b>' + esc(fu.nome) + '</b> (' + esc(fu.matricula || '') + ')'; }); return;
   }
-  const U = await urls([...(p.fotos || []), p.docPath, p.assinPath].filter(Boolean));
+  const U = await urls([...(p.fotos || []), p.fotoSaco, p.docPath, p.assinPath].filter(Boolean));
   const ult = (p.log || []).slice().reverse();
   let acao = '';
   if (p.status === S.GUARD) acao = `<h3>Liberação</h3><form id="sf"><div class="grid"><label class="fld">Quem está solicitando (colaborador)<input name="quem" required value="${esc(ls('quem'))}"></label><label class="fld">Motivo / quem está pedindo os bens<input name="motivo" placeholder="Ex.: familiar na recepção, alta do paciente"></label></div><div class="actions"><button type="submit">Solicitar liberação ao gestor</button></div></form>`;
@@ -143,7 +152,9 @@ async function viewDet() {
   if (p.status === S.LIB) acao = `<h3>Entrega</h3><table class="hdrbox"><tr><td><b>Retirado por</b> ${esc(p.entrega.nome)} (${esc(p.entrega.parentesco)})</td><td><b>Documento</b> ${esc(p.entrega.docTipo)} ${esc(p.entrega.docNum)}</td></tr><tr><td><b>Telefone</b> ${esc(p.entrega.tel || '—')}</td><td><b>Entregue em</b> ${dh(p.entrega.ts)} por ${esc(p.entrega.por)}</td></tr></table><div class="fotos">${p.docPath && U[p.docPath] ? `<img src="${esc(U[p.docPath])}" alt="Documento">` : ''}${p.assinPath && U[p.assinPath] ? `<img src="${esc(U[p.assinPath])}" alt="Assinatura" style="background:#fff">` : ''}</div><div class="actions"><button type="button" id="bTermo">Imprimir termo de entrega</button></div>`;
   $('content').innerHTML = `<section class="view"><div class="actions"><button type="button" class="secondary" id="bVolta">← Lista</button></div>
   <h2>Pertences <span class="big-n">${esc(p.numero)}</span> <span class="st ${cls(p.status)}">${esc(p.status)}</span></h2>
-  <table class="hdrbox"><tr><td><b>Paciente</b> ${esc(p.paciente)}</td><td><b>BAM</b> ${esc(p.bam)}</td></tr><tr><td colspan="2"><b>Sala / local:</b> ${esc(p.sala)}</td></tr><tr><td colspan="2"><b>Itens:</b> ${esc(p.itens).replace(/\n/g, '<br>')}</td></tr><tr><td colspan="2"><b>Acautelado por</b> ${esc(p.guardadoPor)} em ${dh(p.guardadoEm)}</td></tr></table>
+  <table class="hdrbox"><tr><td><b>Paciente</b> ${esc(p.paciente)}</td><td><b>BAM</b> ${esc(p.bam)}</td></tr><tr><td colspan="2"><b>Sala / local:</b> ${esc(p.sala)}</td></tr><tr><td colspan="2"><b>Itens:</b> ${esc(p.itens).replace(/\n/g, '<br>')}</td></tr><tr><td><b>Lacre nº</b> ${esc(p.lacre || '—')}</td><td><b>Testemunha</b> ${p.testemunha && p.testemunha.nome ? esc(p.testemunha.nome) : 'sem — ' + esc((p.testemunha && p.testemunha.justificativa) || '—')}</td></tr><tr><td colspan="2"><b>Acautelado por</b> ${esc(p.guardadoPor)} em ${dh(p.guardadoEm)}</td></tr></table>
+  ${p.violacao ? '<div class="alert bad"><b>⛔</b><span>Na entrega foi registrado lacre violado ou com número divergente: ' + esc(p.violacao) + '</span></div>' : ''}
+  ${p.fotoSaco && U[p.fotoSaco] ? `<p class="muted">Foto do saco lacrado:</p><div class="fotos"><img src="${esc(U[p.fotoSaco])}" alt="Saco lacrado"></div>` : ''}
   ${(p.fotos || []).length ? `<div class="fotos">${p.fotos.map(x => U[x] ? `<img src="${esc(U[x])}" alt="Foto dos itens">` : '').join('')}</div>` : ''}
   ${p.status !== S.LIB ? '<div class="actions"><button type="button" class="secondary" id="bEdit">Editar dados / itens</button><button type="button" class="secondary" id="bEtq1">Imprimir etiqueta</button></div>' : ''}
   ${acao}
@@ -193,6 +204,8 @@ function formEntrega(p) {
   <label class="fld">Entregue por (colaborador)<input name="por" required value="${esc(ls('quem'))}"></label>
   <label class="fld full">Foto do documento de quem retira<input type="file" id="fDoc" accept="image/*" capture="environment"></label></div>
   <p><img id="pvDoc" alt="" style="max-height:140px;border-radius:8px" class="hidden"></p>
+  <label class="fld full">Lacre registrado: <b>${esc(p.lacre || '—')}</b>. Ao abrir, o lacre estava íntegro e com este número?<select name="lacreOk"><option value="sim">Sim — íntegro e confere</option><option value="nao">NÃO — violado ou número diferente</option></select></label>
+  <label class="fld full">Observação sobre o lacre (obrigatória se NÃO)<input name="lacreObs"></label>
   <label class="chk" style="display:flex;gap:8px;align-items:center;font-size:.9rem"><input type="checkbox" name="conf" required style="width:auto;margin:0"> Conferi os itens com quem está retirando e todos foram entregues conforme descrição acima.</label>
   <h4>Assinatura de quem retira</h4><canvas class="assin" id="sig"></canvas><div class="actions"><button type="button" class="secondary small" id="sigLimpa">Limpar assinatura</button></div>
   <div class="actions"><button type="submit">Finalizar entrega</button></div></form>`;
@@ -208,12 +221,13 @@ function iniciarEntrega(p) {
   $('ef').onsubmit = async e => {
     e.preventDefault(); const dd = Object.fromEntries(new FormData(e.target));
     if (!docFoto) { notice('Tire a foto do documento.', true); return; } if (!tem) { notice('Colha a assinatura de quem retira.', true); return; }
+    if (dd.lacreOk === 'nao' && !dd.lacreObs.trim()) { notice('Descreva o que foi observado no lacre.', true); return; }
     const btn = e.target.querySelector('[type=submit]'); btn.disabled = true; ls('quem', dd.por.trim());
     try {
       const sb = await new Promise(res => cv.toBlob(res, 'image/png')); const pd = `pertences/${p.id}/documento.jpg`, ps = `pertences/${p.id}/assinatura.png`;
       await UPA.files.upload(pd, docFoto, 'image/jpeg'); await UPA.files.upload(ps, sb, 'image/png');
-      p.docPath = pd; p.assinPath = ps; p.entrega = { ts: new Date().toISOString(), nome: dd.nome.trim(), parentesco: dd.parentesco, docTipo: dd.docTipo, docNum: dd.docNum.trim(), tel: (dd.tel || '').trim(), por: dd.por.trim() }; p.status = S.LIB;
-      await salvar(p, { tipo: 'Entregue', quem: dd.por.trim(), obs: 'Retirado por ' + dd.nome.trim() }); notice('Entrega finalizada e registrada.'); abrir(p.id);
+      p.docPath = pd; p.assinPath = ps; p.entrega = { ts: new Date().toISOString(), nome: dd.nome.trim(), parentesco: dd.parentesco, docTipo: dd.docTipo, docNum: dd.docNum.trim(), tel: (dd.tel || '').trim(), por: dd.por.trim() }; p.status = S.LIB; p.entrega.lacreOk = dd.lacreOk === 'sim'; if (dd.lacreOk === 'nao') p.violacao = dd.lacreObs.trim();
+      await salvar(p, { tipo: 'Entregue', quem: dd.por.trim(), obs: 'Retirado por ' + dd.nome.trim() + (dd.lacreOk === 'nao' ? ' · LACRE VIOLADO/DIVERGENTE: ' + dd.lacreObs.trim() : ' · lacre íntegro') }); notice('Entrega finalizada e registrada.'); abrir(p.id);
     } catch (er) { notice(UPA.msg(er), true); btn.disabled = false; }
   };
 }
@@ -237,7 +251,7 @@ function imprimirEtiquetas(L) {
 const logoSus = () => `<img src="../../assets/logo-sus.png" alt="SUS" style="height:56px" onerror="this.outerHTML='<span style=&quot;font:800 22pt Arial,sans-serif;color:#0b5ea8;letter-spacing:2px&quot;>SUS</span>'">`;
 function imprimirTermo(p, U) {
   imprimirHtml(`<div class="logos"><img src="../../assets/logo-gnosis.jpg" alt="Instituto Gnosis" style="height:60px">${logoSus()}</div><h2 style="text-align:center">TERMO DE ENTREGA DE PERTENCES DE PACIENTE</h2>
-  <table class="hdrbox"><tr><td><b>Unidade:</b> UPA 24h Rocinha · CNES 6507409</td><td><b>Envelope nº:</b> ${esc(p.numero)}</td></tr><tr><td><b>Paciente:</b> ${esc(p.paciente)}</td><td><b>BAM:</b> ${esc(p.bam)}</td></tr><tr><td colspan="2"><b>Local de guarda:</b> ${esc(p.sala)}</td></tr><tr><td colspan="2"><b>Itens acautelados:</b> ${esc(p.itens).replace(/\n/g, '<br>')}</td></tr><tr><td colspan="2"><b>Acautelado por</b> ${esc(p.guardadoPor)} em ${dh(p.guardadoEm)}</td></tr></table>
+  <table class="hdrbox"><tr><td><b>Unidade:</b> UPA 24h Rocinha · CNES 6507409</td><td><b>Envelope nº:</b> ${esc(p.numero)}</td></tr><tr><td><b>Paciente:</b> ${esc(p.paciente)}</td><td><b>BAM:</b> ${esc(p.bam)}</td></tr><tr><td colspan="2"><b>Local de guarda:</b> ${esc(p.sala)}</td></tr><tr><td colspan="2"><b>Itens acautelados:</b> ${esc(p.itens).replace(/\n/g, '<br>')}</td></tr><tr><td><b>Lacre nº</b> ${esc(p.lacre || '—')} — ${p.entrega.lacreOk === false ? '<b>violado/divergente: ' + esc(p.violacao) + '</b>' : 'conferido íntegro na entrega'}</td><td><b>Testemunha:</b> ${p.testemunha && p.testemunha.nome ? esc(p.testemunha.nome) : '—'}</td></tr><tr><td colspan="2"><b>Acautelado por</b> ${esc(p.guardadoPor)} em ${dh(p.guardadoEm)}</td></tr></table>
   <p style="text-align:justify;font-size:10.5pt">Eu, <b>${esc(p.entrega.nome)}</b>, ${esc(p.entrega.docTipo)} nº ${esc(p.entrega.docNum)}, ${esc(p.entrega.parentesco.toLowerCase())}${p.entrega.tel ? ', telefone ' + esc(p.entrega.tel) : ''}, declaro que recebi em ${dh(p.entrega.ts)} os pertences acima descritos, conferidos na minha presença, e que nada mais tenho a reclamar quanto a eles.</p>
   <p style="font-size:9.5pt"><b>Liberação autorizada por</b> ${esc(p.autorizacao.por)} em ${dh(p.autorizacao.ts)}. <b>Entregue por</b> ${esc(p.entrega.por)}.</p>
   <div style="display:flex;gap:10mm;align-items:flex-end;margin-top:10mm">${U[p.assinPath] ? `<div style="flex:1;text-align:center"><img src="${esc(U[p.assinPath])}" alt="" style="max-height:30mm;max-width:100%"><div style="border-top:1px solid #000;padding-top:3px">${esc(p.entrega.nome)}</div></div>` : ''}${U[p.docPath] ? `<div style="flex:1;text-align:center"><img src="${esc(U[p.docPath])}" alt="" style="max-height:55mm;max-width:100%"><div style="font-size:8pt">Documento apresentado</div></div>` : ''}</div>
@@ -282,7 +296,47 @@ async function vigiar() {
   } catch (e) { }
 }
 
-function render() { nav(); ({ lista: viewLista, ler: viewLer, pend: viewPend, novo: viewNovo, etq: viewEtq, cfg: viewCfg, det: viewDet })[view](); }
+/* ---------- conferência da caixa (inventário por QR) ---------- */
+let confSess = null;
+const naCaixa = () => LIST.filter(p => [S.GUARD, S.SOL, S.AUT].includes(p.status));
+function viewConf() {
+  const esperados = naCaixa(), ult = CONFS.slice(0, 8);
+  const d = ult[0] ? Math.floor((Date.now() - new Date(ult[0].ts)) / 864e5) : null;
+  if (!confSess) {
+    $('content').innerHTML = `<section class="view"><h2>Conferência da caixa</h2>
+    <p class="muted">Passe o celular em todos os envelopes que estão na caixa. O sistema aponta o que está faltando ou sobrando. Recomendo fazer uma vez por semana.</p>
+    <div class="stats"><div class="stat">Envelopes que deveriam estar na caixa<strong>${esperados.length}</strong></div><div class="stat ${d === null || d > 7 ? 'warn' : 'ok'}">Última conferência<strong>${d === null ? 'nunca' : d === 0 ? 'hoje' : 'há ' + d + ' d'}</strong></div></div>
+    <div class="actions"><button type="button" id="bIni">Iniciar conferência</button></div>
+    <h3>Conferências anteriores</h3>${ult.length ? `<div class="table-wrap"><table><thead><tr><th>Quando</th><th>Por</th><th>Esperados</th><th>Conferidos</th><th>Faltando</th></tr></thead><tbody>${ult.map(c => `<tr><td>${dh(c.ts)}</td><td>${esc(c.por)}</td><td>${c.esperados}</td><td>${c.encontrados}</td><td>${c.faltando.length ? '<b style="color:#a51e30">' + esc(c.faltando.join(', ')) + '</b>' : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Nenhuma ainda.</p>'}</section>`;
+    $('bIni').onclick = () => { confSess = { esp: esperados.map(p => p.id), ok: new Set(), extras: [], por: ls('quem') }; if (!confSess.por) confSess.por = prompt('Seu nome (quem está conferindo):') || ''; ls('quem', confSess.por); viewConf(); iniciarScanConf(); };
+    return;
+  }
+  const falta = confSess.esp.filter(id => !confSess.ok.has(id));
+  $('content').innerHTML = `<section class="view"><h2>Conferindo…</h2><div class="cam" id="camBox"><video id="vid" playsinline muted></video></div><p id="confMsg" class="muted">Aponte para cada etiqueta.</p>
+  <div class="stats"><div class="stat ok">Conferidos<strong>${confSess.ok.size}/${confSess.esp.length}</strong></div><div class="stat ${falta.length ? 'warn' : 'ok'}">Faltando<strong>${falta.length}</strong></div></div>
+  ${confSess.extras.length ? `<div class="alert bad"><b>⚠</b><span>Lidos que NÃO deveriam estar na caixa: ${esc(confSess.extras.join(', '))}</span></div>` : ''}
+  <div class="table-wrap"><table><tbody>${confSess.esp.map(id => { const p = get(id); return `<tr><td>${confSess.ok.has(id) ? '✔' : '○'}</td><td><b>${esc(p.numero)}</b></td><td>${esc(p.paciente)}</td><td>${esc(p.lacre || '')}</td><td><button type="button" class="small secondary" data-m="${esc(id)}">${confSess.ok.has(id) ? 'desmarcar' : 'marcar manual'}</button></td></tr>`; }).join('')}</tbody></table></div>
+  <div class="actions"><button type="button" id="bFim">Finalizar e registrar</button><button type="button" class="secondary" id="bAbort">Cancelar</button></div></section>`;
+  document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { const id = b.dataset.m; confSess.ok.has(id) ? confSess.ok.delete(id) : confSess.ok.add(id); viewConf(); iniciarScanConf(); });
+  $('bAbort').onclick = () => { pararCam(); confSess = null; viewConf(); };
+  $('bFim').onclick = async () => {
+    pararCam(); const falt = confSess.esp.filter(id => !confSess.ok.has(id)).map(id => get(id).numero);
+    if (falt.length && !confirm('Faltam ' + falt.length + ' envelope(s): ' + falt.join(', ') + '. Registrar assim mesmo?')) { iniciarScanConf(); return; }
+    const c = { id: 'pconf-' + Date.now().toString(36), ts: new Date().toISOString(), por: confSess.por, esperados: confSess.esp.length, encontrados: confSess.ok.size, faltando: falt, extras: confSess.extras };
+    try { await UPA.db.put('pertences_conf', c.id, c); CONFS.unshift(c); confSess = null; notice(falt.length ? '⚠ Conferência registrada com ' + falt.length + ' envelope(s) faltando: ' + falt.join(', ') : 'Conferência registrada: tudo certo.', !!falt.length); viewConf(); } catch (e) { notice(UPA.msg(e), true); }
+  };
+}
+async function iniciarScanConf() {
+  if (typeof jsQR === 'undefined' || !navigator.mediaDevices) return;
+  pararCam(); try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } }, audio: false }); } catch (e) { notice('Não consegui acessar a câmera: ' + e.message, true); return; }
+  const v = $('vid'); if (!v) { pararCam(); return; } v.srcObject = stream; await v.play();
+  const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true }); let oc = false, visto = {};
+  qrTimer = setInterval(() => { if (oc || !v.videoWidth) return; oc = true; try { const w = Math.min(1280, v.videoWidth), h = Math.round(v.videoHeight * w / v.videoWidth); cv.width = w; cv.height = h; cx.drawImage(v, 0, 0, w, h); const r = jsQR(cx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
+    if (r && r.data && String(r.data).indexOf(QR_P) === 0) { const tk = String(r.data).slice(QR_P.length).toLowerCase(); if (!visto[tk] || Date.now() - visto[tk] > 4000) { visto[tk] = Date.now(); const p = LIST.find(x => x.token === tk), m = $('confMsg');
+      if (!p) { m.textContent = 'Etiqueta desconhecida.'; } else if (confSess.esp.includes(p.id)) { if (!confSess.ok.has(p.id)) { confSess.ok.add(p.id); bip(); viewConf(); iniciarScanConf(); return; } m.textContent = p.numero + ' já conferido.'; } else { if (!confSess.extras.includes(p.numero)) confSess.extras.push(p.numero); bip(); m.textContent = '⚠ ' + p.numero + ' não deveria estar na caixa (' + p.status + ').'; } } } } catch (e) { } oc = false; }, 250);
+}
+
+function render() { nav(); ({ conf: viewConf, lista: viewLista, ler: viewLer, pend: viewPend, novo: viewNovo, etq: viewEtq, cfg: viewCfg, det: viewDet })[view](); }
 (async function init() {
   try { await UPA.ready(); await carregar(); ultimoPend = pend().length; render(); try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) { } setInterval(() => { if (!document.hidden && !stream && !document.querySelector('#af,#ef,#azf:focus-within,#sf')) vigiar(); }, 20000); } catch (e) { notice(UPA.msg(e), true); }
 })();

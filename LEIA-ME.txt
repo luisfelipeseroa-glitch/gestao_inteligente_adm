@@ -135,3 +135,5 @@ o colaborador solicita liberação; o gestor autoriza com nome + PIN (cadastrar 
 documento, dados do familiar e assinatura na tela, e gera o termo de entrega. Aviso de nova solicitação: dentro do módulo (som + notificação) e por e-mail.
 E-mail: supabase functions deploy notificar-pertences ; supabase secrets set RESEND_API_KEY=re_...  (opcional MAIL_FROM). Sem a chave, só o aviso no portal.
 Não precisa de SQL novo. Atenção: fotos de documento ficam no bucket anexos (qualquer usuário logado do portal consegue abrir o arquivo se tiver o link).
+Reforços de segurança (Guarda de pertences): nº do lacre no cadastro e conferência de lacre íntegro na entrega (divergência fica marcada em vermelho e no termo),
+foto do saco lacrado, testemunha por QR do crachá do EPI (ou justificativa) e Conferência da caixa (inventário semanal por QR: aponta faltando/sobrando).
