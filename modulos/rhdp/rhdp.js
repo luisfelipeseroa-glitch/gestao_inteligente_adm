@@ -315,7 +315,12 @@ function parecerLocal() {
 }
 
 /* ---------------- documentos impressos ---------------- */
-const logos = () => `<div class="logos"><img src="../../assets/logo-gnosis.jpg" alt="Instituto Gnosis"><img src="../../assets/logo-upa.png" alt="UPA Rocinha"></div>`;
+/* Cabeçalhos: documentos do colaborador (orientação, advertência, avaliação) = Instituto Gnosis + SUS;
+   relatórios (evolução, desligamento) = logo da UPA. O SUS usa assets/logo-sus.png; sem o arquivo, mostra o texto "SUS". */
+const logoSus = () => `<img src="../../assets/logo-sus.png" alt="SUS" style="height:56px" onerror="this.outerHTML='<span style=&quot;font:800 22pt Arial,sans-serif;color:#0b5ea8;letter-spacing:2px&quot;>SUS</span>'">`;
+const logos = tipo => tipo === 'upa'
+  ? `<div class="logos" style="justify-content:center"><img src="../../assets/logo-upa.png" alt="UPA Rocinha" style="height:62px"></div>`
+  : `<div class="logos"><img src="../../assets/logo-gnosis.jpg" alt="Instituto Gnosis" style="height:60px">${logoSus()}</div>`;
 const caixaCab = (r, assunto, extra) => `<table class="hdrbox"><tr><td>Data: ${fd(r.data)}</td><td>Nº: ${esc(r.numero || '')}</td></tr><tr><td>Unidade: ${esc(CFG.unidade)}</td><td>Funcionário: ${esc(r.nome)}</td></tr><tr><td colspan="2">Assunto: ${esc(assunto)}${extra || ''}</td></tr></table>`;
 const assinaturas = (r, recusou) => `<div class="assin"><div>${recusou ? 'Colaborador recusou-se a assinar' : ''}<br>Funcionário(a)</div><div>${esc(CFG.coordNome)}<br>${esc(CFG.coordCargo)}${CFG.coordCnes ? '<br>CNES ' + esc(CFG.coordCnes) : ''}<br>Coordenador(a)</div><div>Testemunha</div><div>Testemunha</div></div>`;
 function docCond(r) {
@@ -336,7 +341,7 @@ function docAdv(r) {
 async function docDeslHtml(r) {
   const h = await historicoDe(r.nome, r.matricula);
   const linhasHist = [...h.aval.map(a => [a.data, 'Avaliação de experiência (' + (a.periodo || '') + ')', 'Média ' + mediaCrit(a.crit).toFixed(1) + '/5']), ...h.cond.map(a => [a.data, 'Orientação de conduta nº ' + (a.numero || ''), String(a.relato || '').slice(0, 110)]), ...h.adv.map(a => [a.data, a.nivel + ' nº ' + (a.numero || ''), String(a.fato || '').slice(0, 110)])].sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-  return `${logos()}${caixaCab(r, 'Relatório de Desligamento')}
+  return `${logos('upa')}${caixaCab(r, 'Relatório de Desligamento')}
   <table class="t kv"><tr><td>Colaborador</td><td>${esc(r.nome)}${r.matricula ? ' · matrícula ' + esc(r.matricula) : ''}</td></tr><tr><td>Cargo / setor</td><td>${esc(r.cargo)} · ${esc(r.setor)}</td></tr><tr><td>Admissão</td><td>${fd(r.admissao)}</td></tr><tr><td>Tipo de desligamento</td><td>${esc(r.tipo)}</td></tr><tr><td>Último dia trabalhado</td><td>${fd(r.ultimoDia)}</td></tr><tr><td>Aviso prévio</td><td>${esc(r.aviso || '')}</td></tr></table>
   <p><b>Motivo / fundamentação:</b></p><div class="rel">${esc(r.motivo)}</div>
   <p style="margin-top:12px"><b>Histórico funcional registrado no sistema:</b></p>
@@ -354,7 +359,7 @@ function docAval(r) {
 async function docDesl(r) { return docDeslHtml(r); }
 function docEvol(r) {
   const c = r.calc, ai = r.ia;
-  return `${logos()}<table class="hdrbox"><tr><td>Data: ${fd(r.data)}</td><td>Pontuação: ${esc(r.score)}/100</td></tr><tr><td>Unidade: ${esc(CFG.unidade)}</td><td>Funcionário: ${esc(r.nome)}</td></tr><tr><td colspan="2">Assunto: Relatório de Evolução do Colaborador · Cargo: ${esc(r.cargo)}</td></tr></table>
+  return `${logos('upa')}<table class="hdrbox"><tr><td>Data: ${fd(r.data)}</td><td>Pontuação: ${esc(r.score)}/100</td></tr><tr><td>Unidade: ${esc(CFG.unidade)}</td><td>Funcionário: ${esc(r.nome)}</td></tr><tr><td colspan="2">Assunto: Relatório de Evolução do Colaborador · Cargo: ${esc(r.cargo)}</td></tr></table>
   <table class="t kv"><tr><td>Recomendação do sistema</td><td>${esc((REC[r.rec] || [''])[0])} (confiança ${esc(c.confianca)})</td></tr><tr><td>Base considerada</td><td>${esc(r.nAval)} avaliação(ões), ${esc(r.nCond)} orientação(ões), ${esc(r.nAdv)} advertência(s)</td></tr><tr><td>Pontuação</td><td>Avaliações: ${c.base} · descontos: −${c.penal} · final: ${esc(r.score)}</td></tr></table>
   <table class="t"><thead><tr><th>Critério</th><th style="width:15%">Média</th></tr></thead><tbody>${c.porCrit.filter(x => x.media).map(x => `<tr><td>${esc(x.nome)}</td><td>${x.media.toFixed(1)}</td></tr>`).join('')}</tbody></table>
   ${ai ? `<p><b>Parecer de apoio (${ai.local ? 'modelo local' : 'IA'}):</b> ${esc(ai.resumo || '')}</p>${(ai.pontos_atencao || []).length ? `<p><b>Pontos de atenção:</b></p><ul>${ai.pontos_atencao.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${(ai.plano_desenvolvimento || []).length ? `<p><b>Plano de desenvolvimento:</b></p><ul>${ai.plano_desenvolvimento.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}` : ''}
