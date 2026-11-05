@@ -115,3 +115,10 @@ ADEQUAÇÃO SUBHUE (modulos/subhue/)
 Plano de Adequação com as 64 não conformidades do Relatório de Visitas da SUBHUE (25/05/2026): situação, responsável, prazo, ação,
 evidência (descrição + anexos), painel por subseção e relatório de resposta (PDF/Excel). Não precisa de SQL novo: usa a tabela registros
 (coleção subhue_acoes) e o bucket anexos, como os outros módulos.
+
+ATESTOS (modulos/atestos/)
+Importa o PDF recebido para atesto, o usuário clica onde a assinatura deve ficar (imagem + carimbo de certificação abaixo, com data/hora e
+código SHA-256), gera o PDF atestado, arquiva original + atestado (coleção atestos_docs, bucket anexos/atestos/<id>/), baixa o arquivo e,
+opcionalmente, lança o comprovante na Central de Serviços (chamado "Realizado" + PDF anexado) e anexa o PDF como evidência em itens do plano
+SUBHUE. A imagem da assinatura é cadastrada na aba "Assinatura" (fica no bucket privado, nunca no repositório). Não precisa de SQL novo.
+Aviso: é assinatura em imagem com carimbo de verificação, não assinatura digital qualificada (ICP-Brasil/gov.br).
