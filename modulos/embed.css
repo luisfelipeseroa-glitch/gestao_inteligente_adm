@@ -95,3 +95,15 @@ html.embed[data-mod=rouparia] nav button.active{background:#123e70;color:#fff}
 html.embed[data-mod=rouparia] .secondary,html.embed[data-mod=rouparia] .tabs2 button{background:#e5edf4;color:#153b61}
 html.embed[data-mod=rouparia] .tabs2 button.on{background:#123e70;color:#fff}
 html.embed[data-mod=rouparia] .danger{background:#9c3030}
+
+html.embed[data-mod=subhue]{background:#f3f7fc}
+html.embed[data-mod=subhue] body{background:#f3f7fc}
+html.embed[data-mod=subhue] header,html.embed[data-mod=subhue] footer{display:none}
+html.embed[data-mod=subhue] nav{border-radius:12px;margin:14px 16px 0;padding:8px}
+html.embed[data-mod=subhue] main{margin:14px auto}
+html.embed[data-mod=subhue] button{background:#1f5fa8}
+html.embed[data-mod=subhue] nav button{background:transparent;color:#234866}
+html.embed[data-mod=subhue] nav button.active{background:#123e70;color:#fff}
+html.embed[data-mod=subhue] .secondary,html.embed[data-mod=subhue] .tabs2 button{background:#e5edf4;color:#153b61}
+html.embed[data-mod=subhue] .tabs2 button.on{background:#123e70;color:#fff}
+html.embed[data-mod=subhue] .danger{background:#9c3030}

@@ -108,3 +108,10 @@ Configuração (uma vez):
    Sem a função, os módulos funcionam com regras e modelos locais.
 3. Rouparia: em Configurações informe fornecedor, tolerância de peso (%) e valor por kg.
 A recomendação da IA/sistema é apoio à decisão: a decisão final é sempre do gestor, com RH/jurídico.
+
+
+ADEQUAÇÃO SUBHUE (modulos/subhue/)
+-----------------------------------
+Plano de Adequação com as 64 não conformidades do Relatório de Visitas da SUBHUE (25/05/2026): situação, responsável, prazo, ação,
+evidência (descrição + anexos), painel por subseção e relatório de resposta (PDF/Excel). Não precisa de SQL novo: usa a tabela registros
+(coleção subhue_acoes) e o bucket anexos, como os outros módulos.
