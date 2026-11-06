@@ -137,3 +137,8 @@ E-mail: supabase functions deploy notificar-pertences ; supabase secrets set RES
 Não precisa de SQL novo. Atenção: fotos de documento ficam no bucket anexos (qualquer usuário logado do portal consegue abrir o arquivo se tiver o link).
 Reforços de segurança (Guarda de pertences): nº do lacre no cadastro e conferência de lacre íntegro na entrega (divergência fica marcada em vermelho e no termo),
 foto do saco lacrado, testemunha por QR do crachá do EPI (ou justificativa) e Conferência da caixa (inventário semanal por QR: aponta faltando/sobrando).
+
+PENDÊNCIAS E BACKUP (pendencias.js, tela inicial do portal)
+Painel que reúne o que exige ação: liberações de pertences aguardando, pertences parados +30 dias, conferência da caixa atrasada, prazos SUBHUE vencidos
+ou vencendo em 7 dias, treinamentos de hoje/sem conclusão. Botão "Baixar backup dos dados" gera um JSON com registros (todos os módulos), funcionários, EPIs e
+entregas; não inclui fotos/arquivos do armazenamento. O backup é manual (o painel avisa se passou de 7 dias).
