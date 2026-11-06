@@ -18,7 +18,7 @@ const qi = (n, k) => Math.round(num(n[k]));
 const totItens = n => ITENS.reduce((s, i) => s + qi(n, i[0]), 0);
 const itensTxt = n => ITENS.filter(i => qi(n, i[0])).map(i => i[1] + ' ' + qi(n, i[0])).join(' · ');
 const QUAL = ['Item fora do contrato (só lençol, camisola e cobertor)', 'Manchas', 'Mau cheiro', 'Rasgos / desgaste', 'Peças faltando', 'Peças trocadas / de outra unidade', 'Quantidade diferente da nota', 'Úmida', 'Mal dobrada / embalada', 'Entrega atrasada'];
-let CFG = { tolerancia: 5, valorKg: 0, fornecedor: '', contrato: '', coordNome: 'Luis Felipe W. Seroa da Motta', coordCargo: 'Coordenador Administrativo' };
+let CFG = { pesoUn: { lencol: '', camisola: '0,25', cobertor: '' }, tolerancia: 5, valorKg: 0, fornecedor: '', contrato: '', coordNome: 'Luis Felipe W. Seroa da Motta', coordCargo: 'Coordenador Administrativo' };
 function notice(t, erro) { const m = $('message'); m.textContent = t || ''; m.className = erro ? 'err' : ''; if (t) m.scrollIntoView({ block: 'nearest' }); }
 
 /* ---------- dados ---------- */
@@ -26,7 +26,7 @@ const cache = {};
 async function all(col) { if (!cache[col]) cache[col] = (await UPA.db.list(col)).map(r => ({ ...r.dados, id: r.id })); return cache[col]; }
 async function put(col, o) { const d = { ...o, id: o.id || uuid() }; await UPA.db.put(col, d.id, d); delete cache[col]; return d; }
 async function del(col, id) { await UPA.db.del(id); delete cache[col]; }
-async function carregarCfg() { const l = await all(CG); const c = l.find(x => x.id === CFG_ID); if (c) CFG = { ...CFG, ...c }; }
+async function carregarCfg() { const l = await all(CG); const c = l.find(x => x.id === CFG_ID); if (c) CFG = { ...CFG, ...c, pesoUn: { ...CFG.pesoUn, ...(c.pesoUn || {}) } }; }
 
 /* ---------- cálculo ---------- */
 function calc(n) {
@@ -88,8 +88,12 @@ function formNota(c) {
   <label class="fld">Nº da nota<input name="numero" value="${esc(c.numero || '')}"></label>
   <label class="fld">Fornecedor<input name="fornecedor" value="${esc(c.fornecedor || CFG.fornecedor)}"></label>
   <label class="fld">Peso da nota (kg)<input name="pesoNota" inputmode="decimal" value="${esc(c.pesoNota || '')}"></label>
-  <label class="fld">Peso real aferido (kg)<input name="pesoReal" inputmode="decimal" value="${esc(c.pesoReal || '')}"></label>
-  ${ITENS.map(i => `<label class="fld">${i[1]} (qtd. de peças)<input name="${i[0]}" inputmode="numeric" value="${esc(c[i[0]] || '')}"></label>`).join('')}
+  <label class="fld">Peso real aferido (kg)<input name="pesoReal" inputmode="decimal" value="${esc(c.pesoReal || '')}" data-auto="${c.pesoEstimado ? '1' : (c.pesoReal ? '0' : '1')}"></label>
+  <fieldset class="fld full calc"><legend>Calculadora de peso por item (estimativa)</legend>
+  <div class="table-wrap"><table><thead><tr><th>Item</th><th>Qtd. de peças</th><th>Peso médio por peça (kg)</th><th>Subtotal</th></tr></thead><tbody>
+  ${ITENS.map(i => `<tr><td>${i[1]}</td><td><input name="${i[0]}" inputmode="numeric" value="${esc(c[i[0]] || '')}" aria-label="Quantidade de ${i[1]}"></td><td><input name="pu_${i[0]}" inputmode="decimal" value="${esc(c['pu_' + i[0]] != null && c['pu_' + i[0]] !== '' ? c['pu_' + i[0]] : (CFG.pesoUn || {})[i[0]] || '')}" aria-label="Peso por peça de ${i[1]}"></td><td data-sub="${i[0]}">—</td></tr>`).join('')}
+  </tbody><tfoot><tr><td colspan="3"><b>Peso total estimado</b></td><td><b id="calcTot">—</b></td></tr></tfoot></table></div>
+  <p class="muted">O total é lançado automaticamente em “Peso real aferido” enquanto você não digitar o peso à mão. Pese uma amostra para conferir o peso médio de cada peça (cadastre em Configurações). Notas lançadas assim ficam marcadas como <b>estimadas</b>.</p></fieldset>
   <fieldset class="fld full"><legend>Qualidade / ocorrências</legend><div class="chk">${QUAL.map(o => `<label class="c"><input type="checkbox" name="qualidade" value="${esc(o)}"${q.indexOf(o) >= 0 ? ' checked' : ''}>${esc(o)}</label>`).join('')}</div></fieldset>
   <label class="fld full">Observações<textarea name="obs">${esc(c.obs || '')}</textarea></label>
   <label class="fld full">Anexar nota (foto/PDF)<input type="file" id="anexos" multiple accept="image/*,application/pdf"></label>
@@ -99,7 +103,7 @@ function formNota(c) {
 async function viewNotas() {
   const L = await all(CN), cur = ed ? L.find(n => n.id === ed) : null, q = semAc(fil.q);
   const lista = L.filter(n => (!fil.mes || mesDe(n.data) === fil.mes) && (!fil.tipo || (fil.tipo === 'S') === tipoSaida(n)) && (!q || semAc([n.numero, n.fornecedor, n.obs].join(' ')).indexOf(q) >= 0)).sort((a, b) => String(b.data).localeCompare(String(a.data)));
-  const lin = lista.map(n => { const c = calc(n); return `<tr><td>${fd(n.data)}</td><td>${tipoSaida(n) ? 'Saída' : 'Entrada'}</td><td>${esc(n.numero)}</td><td>${c.nota ? kg(c.nota) : '—'}</td><td>${c.real ? kg(c.real) : '—'}</td><td>${c.tem ? `<span class="badge ${c.fora ? 'bad' : 'ok'}">${c.dif > 0 ? '+' : ''}${kg(c.dif)} (${c.pct.toFixed(1)}%)</span>` : '<span class="badge warn">pendente</span>'}</td><td>${esc(itensTxt(n))}</td><td>${esc((n.qualidade || []).join(', '))}</td><td style="white-space:nowrap">${(n.anexos || []).length ? `<button type="button" class="small secondary" data-act="ver" data-id="${esc(n.id)}">Anexos</button>` : ''}<button type="button" class="small" data-act="edit" data-id="${esc(n.id)}">Editar</button><button type="button" class="small danger" data-act="del" data-id="${esc(n.id)}">Excluir</button></td></tr>`; }).join('');
+  const lin = lista.map(n => { const c = calc(n); return `<tr><td>${fd(n.data)}</td><td>${tipoSaida(n) ? 'Saída' : 'Entrada'}</td><td>${esc(n.numero)}</td><td>${c.nota ? kg(c.nota) : '—'}</td><td>${c.real ? kg(c.real) + (n.pesoEstimado ? ' <span class="badge warn" title="Estimado por contagem de peças × peso médio">est.</span>' : '') : '—'}</td><td>${c.tem ? `<span class="badge ${c.fora ? 'bad' : 'ok'}">${c.dif > 0 ? '+' : ''}${kg(c.dif)} (${c.pct.toFixed(1)}%)</span>` : '<span class="badge warn">pendente</span>'}</td><td>${esc(itensTxt(n))}</td><td>${esc((n.qualidade || []).join(', '))}</td><td style="white-space:nowrap">${(n.anexos || []).length ? `<button type="button" class="small secondary" data-act="ver" data-id="${esc(n.id)}">Anexos</button>` : ''}<button type="button" class="small" data-act="edit" data-id="${esc(n.id)}">Editar</button><button type="button" class="small danger" data-act="del" data-id="${esc(n.id)}">Excluir</button></td></tr>`; }).join('');
   const ms = meses(L);
   $('content').innerHTML = `<section class="view"><h2>Notas de lavanderia</h2><p class="muted">Registre cada nota: saída (roupa suja enviada) e entrada (roupa limpa recebida), com o peso da nota e o peso real aferido na balança da unidade.</p>${formNota(cur)}
   <h3>Registros (${lista.length})</h3><div class="filtro"><label>Mês<select id="fMes"><option value="">Todos</option>${ms.map(m => `<option value="${m}"${m === fil.mes ? ' selected' : ''}>${mesTxt(m)}</option>`).join('')}</select></label><label>Movimento<select id="fTipo"><option value="">Todos</option><option value="S"${fil.tipo === 'S' ? ' selected' : ''}>Saída</option><option value="E"${fil.tipo === 'E' ? ' selected' : ''}>Entrada</option></select></label><label>Buscar<input type="search" id="busca" value="${esc(fil.q)}" placeholder="nº, fornecedor"></label></div>
@@ -108,6 +112,8 @@ async function viewNotas() {
 function lerNota(form, base) {
   const f = form.elements, o = { ...base };
   ['tipo', 'data', 'numero', 'fornecedor', 'pesoNota', 'pesoReal', 'lencol', 'camisola', 'cobertor', 'obs'].forEach(k => { o[k] = String(f[k].value || '').trim(); });
+  ITENS.forEach(i => { o['pu_' + i[0]] = String(f['pu_' + i[0]].value || '').trim(); });
+  o.pesoEstimado = f.pesoReal.dataset.auto === '1' && !!String(f.pesoReal.value).trim();
   o.pecas = String(totItens(o) || '');
   o.qualidade = Array.from(form.querySelectorAll('input[name="qualidade"]:checked')).map(x => x.value);
   return o;
@@ -229,12 +235,12 @@ function htmlCarta() {
   <form id="cartaForm"><div class="grid"><label class="fld full">Assunto<input name="assunto" value="${esc(c.assunto)}"></label><label class="fld full">Carta<textarea name="corpo" style="min-height:300px">${esc(c.corpo)}</textarea></label></div><div class="actions"><button type="submit">Salvar carta</button><button type="submit" class="secondary" data-after="print">Salvar e imprimir</button></div></form>`;
 }
 function dadosCarta(marc) {
-  return marc.map(n => { const c = calc(n); return { data: fd(n.data), movimento: tipoSaida(n) ? 'saída, roupa suja enviada' : 'entrada, roupa limpa recebida', nota: n.numero, peso_nota_kg: c.nota || null, peso_real_kg: c.real || null, diferenca_kg: c.tem ? +c.dif.toFixed(2) : null, diferenca_pct: c.tem ? +c.pct.toFixed(1) : null, itens_qtd: { lencol: qi(n, 'lencol'), camisola: qi(n, 'camisola'), cobertor: qi(n, 'cobertor') }, ocorrencias: n.qualidade || [], obs: n.obs || '' }; });
+  return marc.map(n => { const c = calc(n); return { data: fd(n.data), movimento: tipoSaida(n) ? 'saída, roupa suja enviada' : 'entrada, roupa limpa recebida', nota: n.numero, peso_nota_kg: c.nota || null, peso_real_kg: c.real || null, peso_real_estimado: !!n.pesoEstimado, diferenca_kg: c.tem ? +c.dif.toFixed(2) : null, diferenca_pct: c.tem ? +c.pct.toFixed(1) : null, itens_qtd: { lencol: qi(n, 'lencol'), camisola: qi(n, 'camisola'), cobertor: qi(n, 'cobertor') }, ocorrencias: n.qualidade || [], obs: n.obs || '' }; });
 }
 function cartaLocal(marc, motivo, tom, extra) {
   const L = dadosCarta(marc), tot = L.reduce((s, x) => s + (x.diferenca_kg || 0), 0);
   const formal = /Formal|firme \(/.test(tom) ? 'Solicitamos, com a devida urgência, ' : 'Gostaríamos de solicitar ';
-  const itens = L.map(x => `• Nota nº ${x.nota || 's/n'} (${x.movimento}, ${x.data}): ${x.peso_nota_kg != null ? `peso na nota ${x.peso_nota_kg} kg; peso aferido em nossa balança ${x.peso_real_kg} kg; diferença de ${x.diferenca_kg > 0 ? '+' : ''}${x.diferenca_kg} kg (${x.diferenca_pct}%)` : 'sem pesos aferidos'}${itensTxt(marc.find(m => m.numero === x.nota) || {}) ? '; itens: ' + itensTxt(marc.find(m => m.numero === x.nota)) : ''}${x.ocorrencias.length ? '; ocorrências: ' + x.ocorrencias.join(', ') : ''}${x.obs ? '; ' + x.obs : ''}.`).join('\n');
+  const itens = L.map(x => `• Nota nº ${x.nota || 's/n'} (${x.movimento}, ${x.data}): ${x.peso_nota_kg != null ? `peso na nota ${x.peso_nota_kg} kg; peso ${x.peso_real_estimado ? 'estimado pela UPA por contagem de peças × peso médio' : 'aferido em nossa balança'} ${x.peso_real_kg} kg; diferença de ${x.diferenca_kg > 0 ? '+' : ''}${x.diferenca_kg} kg (${x.diferenca_pct}%)` : 'sem pesos aferidos'}${itensTxt(marc.find(m => m.numero === x.nota) || {}) ? '; itens: ' + itensTxt(marc.find(m => m.numero === x.nota)) : ''}${x.ocorrencias.length ? '; ocorrências: ' + x.ocorrencias.join(', ') : ''}${x.obs ? '; ' + x.obs : ''}.`).join('\n');
   const corpo = `Rio de Janeiro, ${fd(hoje())}.\n\nÀ ${CFG.fornecedor || '[Lavanderia]'}\n${CFG.contrato ? 'Ref.: contrato ' + CFG.contrato + '\n' : ''}\nAssunto: Questionamento — ${motivo}\n\nPrezados,\n\nA UPA 24h Rocinha, ao conferir os serviços de lavanderia prestados, identificou as seguintes inconsistências:\n\n${itens}\n\n${/peso/i.test(motivo) && tot ? `A soma das diferenças registradas nas notas acima é de ${tot > 0 ? '+' : ''}${tot.toFixed(2)} kg entre o peso informado na nota e o peso aferido pela unidade. ` : ''}${formal}esclarecimentos formais, a conferência conjunta dos pesos e, quando cabível, a correção/ajuste dos valores faturados e a reposição ou relavagem das peças com problema, no prazo de 5 (cinco) dias úteis.\n${extra ? '\n' + extra + '\n' : ''}\nColocamo-nos à disposição para tratar do assunto e agradecemos a atenção.\n\nAtenciosamente,\n\n${CFG.coordNome}\n${CFG.coordCargo} — UPA 24h Rocinha`;
   return { local: true, assunto: `Questionamento — ${motivo}`, corpo, conselhos: ['Anexe cópias das notas e registros de pesagem (foto da balança) à carta.', 'Peça a pesagem conjunta na próxima entrega e registre com data/hora.', 'Confirme no contrato a tolerância de peso e o prazo para contestação.'], alertas: ['Revise valores, datas e cláusulas contratuais antes de enviar.'] };
 }
@@ -259,6 +265,7 @@ async function viewCfg() {
   $('content').innerHTML = `<section class="view"><h2>Configurações</h2><form id="cfgForm"><div class="grid">
   <label class="fld">Fornecedor (lavanderia)<input name="fornecedor" value="${esc(CFG.fornecedor)}"></label><label class="fld">Contrato nº<input name="contrato" value="${esc(CFG.contrato)}"></label>
   <label class="fld">Tolerância de diferença de peso (%)<input name="tolerancia" inputmode="decimal" value="${esc(CFG.tolerancia)}"></label><label class="fld">Valor por kg (R$) — para estimar cobrança a maior<input name="valorKg" inputmode="decimal" value="${esc(CFG.valorKg)}"></label>
+  ${ITENS.map(i => `<label class="fld">Peso médio por peça — ${i[1]} (kg)<input name="pu_${i[0]}" inputmode="decimal" value="${esc((CFG.pesoUn || {})[i[0]] || '')}"></label>`).join('')}
   <label class="fld">Quem assina as cartas<input name="coordNome" value="${esc(CFG.coordNome)}"></label><label class="fld">Cargo<input name="coordCargo" value="${esc(CFG.coordCargo)}"></label></div><div class="actions"><button type="submit">Salvar</button></div></form></section>`;
 }
 
@@ -293,11 +300,17 @@ function ligar() {
     else if (t.dataset && t.dataset.sel) { const i = selCarta.indexOf(t.dataset.sel); if (t.checked && i < 0) selCarta.push(t.dataset.sel); if (!t.checked && i >= 0) selCarta.splice(i, 1); }
   });
   c.addEventListener('input', e => { if (e.target.id === 'busca') { fil.q = e.target.value; clearTimeout(ligar.t); ligar.t = setTimeout(async () => { const p = e.target.selectionStart; await render(); const n = $('busca'); if (n) { n.focus(); n.setSelectionRange(p, p); } }, 300); } });
+  const recalc = form => {
+    let tot = 0; ITENS.forEach(i => { const st = num(form.elements[i[0]].value) * num(form.elements['pu_' + i[0]].value); tot += st; const td = form.querySelector(`[data-sub="${i[0]}"]`); if (td) td.textContent = st > 0 ? kg(st) : '—'; });
+    const t = $('calcTot'); if (t) t.textContent = tot > 0 ? kg(tot) : '—'; const pr = form.elements.pesoReal;
+    if (pr.dataset.auto === '1') pr.value = tot > 0 ? (Math.round(tot * 100) / 100).toString().replace('.', ',') : '';
+  };
+  c.addEventListener('input', e => { const f = e.target.form; if (!f || f.id !== 'ef') return; if (e.target.name === 'pesoReal') e.target.dataset.auto = e.target.value.trim() ? '0' : '1'; else if (/^(lencol|camisola|cobertor|pu_)/.test(e.target.name)) recalc(f); });
   c.addEventListener('submit', async e => {
     e.preventDefault(); const f = e.target;
     try {
       if (f.id === 'ef') await salvarNota(f);
-      else if (f.id === 'cfgForm') { const g = new FormData(f); CFG = { ...CFG, id: CFG_ID }; ['fornecedor', 'contrato', 'coordNome', 'coordCargo'].forEach(k => { CFG[k] = String(g.get(k) || '').trim(); }); CFG.tolerancia = num(g.get('tolerancia')); CFG.valorKg = num(g.get('valorKg')); await put(CG, CFG); notice('Configurações salvas.'); }
+      else if (f.id === 'cfgForm') { const g = new FormData(f); CFG = { ...CFG, id: CFG_ID }; ['fornecedor', 'contrato', 'coordNome', 'coordCargo'].forEach(k => { CFG[k] = String(g.get(k) || '').trim(); }); CFG.pesoUn = {}; ITENS.forEach(i => { CFG.pesoUn[i[0]] = String(g.get('pu_' + i[0]) || '').trim(); }); CFG.tolerancia = num(g.get('tolerancia')); CFG.valorKg = num(g.get('valorKg')); await put(CG, CFG); notice('Configurações salvas.'); }
       else if (f.id === 'cartaForm') { const g = new FormData(f); const d = await put(CC, { ...CARTA, id: undefined, data: hoje(), assunto: g.get('assunto'), corpo: g.get('corpo') }); notice('Carta salva.'); if (depois === 'print') imprimir(docCarta(d)); await render(); }
     } catch (err) { notice(UPA.msg(err), true); }
   });

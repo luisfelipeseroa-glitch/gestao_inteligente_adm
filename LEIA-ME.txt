@@ -142,3 +142,7 @@ PENDÊNCIAS E BACKUP (pendencias.js, tela inicial do portal)
 Painel que reúne o que exige ação: liberações de pertences aguardando, pertences parados +30 dias, conferência da caixa atrasada, prazos SUBHUE vencidos
 ou vencendo em 7 dias, treinamentos de hoje/sem conclusão. Botão "Baixar backup dos dados" gera um JSON com registros (todos os módulos), funcionários, EPIs e
 entregas; não inclui fotos/arquivos do armazenamento. O backup é manual (o painel avisa se passou de 7 dias).
+
+ROUPARIA — calculadora de peso por item: no formulário de nota, informe a quantidade e o peso médio por peça de cada item (lençol, camisola, cobertor; os pesos médios
+padrão ficam em Configurações). A soma preenche sozinha o "Peso real aferido" até você digitar o peso à mão; notas assim ficam marcadas "est." (estimado) e a carta
+informa que o peso foi estimado. Se quiser isso na carta com IA, publique de novo a função: supabase functions deploy ia-assistente
