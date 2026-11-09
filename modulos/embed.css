@@ -143,3 +143,15 @@ html.embed[data-mod=pertences] nav button{background:transparent;color:#234866}
 html.embed[data-mod=pertences] nav button.active{background:#123e70;color:#fff}
 html.embed[data-mod=pertences] .secondary{background:#e5edf4;color:#153b61}
 html.embed[data-mod=pertences] .danger{background:#9c3030}
+
+/* ---------- dfd ---------- */
+html.embed[data-mod=dfd]{background:#f3f7fc}
+html.embed[data-mod=dfd] body{background:#f3f7fc}
+html.embed[data-mod=dfd] header,html.embed[data-mod=dfd] footer{display:none}
+html.embed[data-mod=dfd] nav{border-radius:12px;margin:14px 16px 0;padding:8px}
+html.embed[data-mod=dfd] main{margin:14px auto}
+html.embed[data-mod=dfd] button{background:#1f5fa8}
+html.embed[data-mod=dfd] nav button{background:transparent;color:#234866}
+html.embed[data-mod=dfd] nav button.active{background:#123e70;color:#fff}
+html.embed[data-mod=dfd] .secondary{background:#e5edf4;color:#153b61}
+html.embed[data-mod=dfd] .danger,html.embed[data-mod=dfd] .sig .x{background:#9c3030}

@@ -146,3 +146,8 @@ entregas; não inclui fotos/arquivos do armazenamento. O backup é manual (o pai
 ROUPARIA — calculadora de peso por item: no formulário de nota, informe a quantidade e o peso médio por peça de cada item (lençol, camisola, cobertor; os pesos médios
 padrão ficam em Configurações). A soma preenche sozinha o "Peso real aferido" até você digitar o peso à mão; notas assim ficam marcadas "est." (estimado) e a carta
 informa que o peso foi estimado. Se quiser isso na carta com IA, publique de novo a função: supabase functions deploy ia-assistente
+
+DFD (modulos/dfd/)
+Importa o DFD preenchido (PDF), localiza a linha "Matr." no fim do documento e posiciona sozinho a assinatura acima dela (ajustável), com carimbo de verificação opcional.
+Gera o PDF assinado (original preservado), arquiva (coleção dfd_docs, anexos/dfd/<id>/), baixa e permite conferir autenticidade por SHA-256. Usa a imagem de assinatura cadastrada
+em Atestos > Assinatura. Sem SQL novo. Assinatura em imagem, não qualificada (ICP-Brasil/gov.br).
