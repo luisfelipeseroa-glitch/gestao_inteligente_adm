@@ -11,7 +11,7 @@ const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'a' + Date.now().t
 const C_DOCS = 'dfd_docs', C_ATC = 'atestos_cfg';
 const CFG0 = { nome: 'Luis Felipe W. Seroa da Motta', cargo: 'Coordenador Administrativo', unidade: 'UPA 24h Rocinha', cnes: '6507409' };
 let view = 'novo', CFG = { ...CFG0 }, SIGURL = '', DOCS = [], sigImg = null, prevUrl = '', prevRel = 0.4;
-let pdfBytes = null, pdfName = '', pdfDoc = null, hashOrig = '', marks = [], sigW = 0.28, titulo = '', dataDoc = '';
+let origBytes = null, origWord = false, wordHint = null, pdfBytes = null, pdfName = '', pdfDoc = null, hashOrig = '', marks = [], sigW = 0.28, titulo = '', dataDoc = '';
 
 function notice(t, erro) { const m = $('message'); m.textContent = t || ''; m.className = erro ? 'err' : ''; if (t) m.scrollIntoView({ block: 'nearest' }); }
 const VIEWS = [['novo', 'Novo DFD'], ['arq', 'Arquivo'], ['conf', 'Conferir documento']];
@@ -57,8 +57,14 @@ async function iniciarPdfJs() {
 }
 async function abrirPdf(file) {
   notice('Lendo o PDF…'); await iniciarPdfJs();
-  pdfBytes = new Uint8Array(await file.arrayBuffer()); pdfName = file.name; marks = [];
-  hashOrig = await sha256(pdfBytes.buffer.slice(0));
+  const bruto = await file.arrayBuffer(); origBytes = new Uint8Array(bruto); pdfName = file.name; marks = []; wordHint = null;
+  origWord = /\.docx?$/i.test(file.name) || /wordprocessingml|msword/.test(file.type);
+  if (origWord) {
+    if (/\.doc$/i.test(file.name)) throw new Error('Arquivo .doc (Word antigo) não é suportado. Abra no Word, salve como .docx ou PDF e importe de novo.');
+    notice('Convertendo o Word em PDF…');
+    const r = await docxParaPdf(bruto.slice(0), (i, n) => notice(`Convertendo o Word em PDF… página ${i}/${n}`)); pdfBytes = r.bytes; wordHint = r.hint;
+  } else pdfBytes = origBytes;
+  hashOrig = await sha256(origBytes.buffer.slice(origBytes.byteOffset, origBytes.byteOffset + origBytes.byteLength));
   pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes.slice() }).promise;
   const box = $('pages'); box.innerHTML = ''; let locPos = null;
   try { const md = await pdfDoc.getMetadata(); titulo = String((md.info && md.info.Title) || '').replace(/\.(docx?|pdf)$/i, '').trim(); } catch (e) { titulo = ''; }
@@ -76,11 +82,12 @@ async function abrirPdf(file) {
     } catch (e) { }
   }
   const ult = pdfDoc.numPages;
+  if (!locPos && wordHint) locPos = { ...wordHint, achou: true };
   if (!locPos) locPos = { n: ult, cx: 0.5, topo: 0.82, achou: false };
   $('passo2').classList.remove('hidden'); $('fObj').value = titulo; $('fData').value = dataDoc || hoje();
   if (sigImg) { await atualizarPrev(); const w = pdfPages(locPos.n), bw = sigW, bh = bw * prevRel * (w.clientWidth / w.clientHeight); const m = { id: uuid(), n: locPos.n, fx: Math.max(0, Math.min(1 - bw, locPos.cx - bw / 2)), fy: Math.max(0, locPos.topo - bh - 0.008), el: null }; marks.push(m); desenharMarca(w, m); w.scrollIntoView({ block: 'center' }); }
   atualizarMarcas();
-  notice(locPos.achou ? 'Assinatura posicionada acima da linha “Matr.” no fim do documento. Ajuste arrastando, se precisar.' : 'Não achei a linha “Matr.”: posicionei no fim da última página. Arraste para o lugar correto.');
+  notice((origWord ? 'Word convertido em PDF (visual aproximado — confira o documento antes de assinar). ' : '') + (locPos.achou ? 'Assinatura posicionada acima da linha “Matr.” no fim do documento. Ajuste arrastando, se precisar.' : 'Não achei a linha “Matr.”: posicionei no fim da última página. Arraste para o lugar correto.'));
 }
 const pdfPages = n => document.querySelector(`.pg[data-n="${n}"]`);
 function colocar(w, ev) {
@@ -115,18 +122,18 @@ async function gerarAssinado(img) {
 }
 async function salvar(e) {
   e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
-  if (!pdfBytes) { notice('Importe o PDF do DFD primeiro.', true); return; } if (!marks.length) { notice('Posicione a assinatura (clique na página).', true); return; }
+  if (!pdfBytes) { notice('Importe o DFD (PDF ou Word) primeiro.', true); return; } if (!marks.length) { notice('Posicione a assinatura (clique na página).', true); return; }
   if (!sigImg) { notice('Cadastre a imagem da assinatura em Atestos > Assinatura.', true); return; } if (!f.objeto.trim()) { notice('Informe o objeto do DFD.', true); return; }
   const btn = $('btnSalvar'); btn.disabled = true;
   try {
     notice('Gerando PDF assinado…'); const id = uuid(), agora = new Date(), codigo = cod(hashOrig), car = comCarimbo();
     const img = await montarImagem(car, codigo, dataHora(agora)), out = await gerarAssinado(img), hashAss = await sha256(out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength));
     const base = `DFD_${slug(f.objeto)}_${(f.dataDoc || hoje()).replace(/-/g, '')}`;
-    notice('Arquivando…'); const pO = `dfd/${id}/original.pdf`, pA = `dfd/${id}/assinado.pdf`;
-    await UPA.files.upload(pO, blobDe(pdfBytes), 'application/pdf'); await UPA.files.upload(pA, blobDe(out), 'application/pdf');
-    const doc = { id, criadoEm: agora.toISOString(), objeto: f.objeto.trim(), numero: f.numero.trim(), dataDoc: f.dataDoc, unidade: f.unidade.trim(), obs: f.obs.trim(), nomeOriginal: pdfName, paginas: pdfDoc.numPages, assinaturas: marks.map(m => m.n), carimbo: car, hashOrig, hashAss, codigo, pathOrig: pO, pathAss: pA, nomeAss: base + '_assinado.pdf', signatario: CFG.nome };
+    notice('Arquivando…'); const pO = `dfd/${id}/original.${origWord ? 'docx' : 'pdf'}`, pA = `dfd/${id}/assinado.pdf`;
+    await UPA.files.upload(pO, origWord ? new Blob([origBytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }) : blobDe(pdfBytes), origWord ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf'); await UPA.files.upload(pA, blobDe(out), 'application/pdf');
+    const doc = { id, criadoEm: agora.toISOString(), objeto: f.objeto.trim(), numero: f.numero.trim(), dataDoc: f.dataDoc, unidade: f.unidade.trim(), obs: f.obs.trim(), nomeOriginal: pdfName, origemWord: origWord, paginas: pdfDoc.numPages, assinaturas: marks.map(m => m.n), carimbo: car, hashOrig, hashAss, codigo, pathOrig: pO, pathAss: pA, nomeAss: base + '_assinado.pdf', signatario: CFG.nome };
     await UPA.db.put(C_DOCS, id, doc); DOCS.unshift(doc); baixar(blobDe(out), doc.nomeAss);
-    pdfBytes = null; marks = []; render(); notice('DFD assinado e arquivado. O download do PDF assinado foi iniciado.');
+    pdfBytes = null; origBytes = null; marks = []; render(); notice('DFD assinado e arquivado. O download do PDF assinado foi iniciado.');
     $('content').insertAdjacentHTML('afterbegin', `<div class="okbox"><b>✔ DFD arquivado.</b> ${esc(doc.objeto)}.<div class="actions"><button type="button" id="okB">Baixar novamente</button><button type="button" class="secondary" id="okA">Ver no arquivo</button></div></div>`);
     $('okB').onclick = () => baixar(blobDe(out), doc.nomeAss); $('okA').onclick = () => { view = 'arq'; render(); };
   } catch (er) { console.error(er); notice('Erro ao salvar: ' + UPA.msg(er), true); } finally { const b = $('btnSalvar'); if (b) b.disabled = false; }
@@ -136,7 +143,7 @@ async function salvar(e) {
 function viewNovo() {
   $('content').innerHTML = `<section class="view"><h2>Novo DFD</h2>
   ${!sigImg ? '<div class="alert warn"><b>⚠</b><span>Cadastre antes a imagem da sua assinatura em <b>Atestos &gt; Assinatura</b> (a mesma é usada aqui).</span></div>' : ''}
-  <form id="nf"><h3>1. Importar o DFD preenchido (PDF)</h3><label class="fld">Arquivo PDF<input type="file" id="pdfIn" accept="application/pdf,.pdf"></label>
+  <form id="nf"><h3>1. Importar o DFD preenchido (PDF ou Word)</h3><label class="fld">Arquivo PDF ou Word (.docx)<input type="file" id="pdfIn" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></label><p class="muted">PDF mantém o documento exatamente como está. No Word (.docx), o sistema converte para PDF no navegador — o visual é aproximado, então confira antes de assinar (para fidelidade total, use no Word “Salvar como PDF”).</p>
   <div id="passo2" class="hidden"><h3>2. Conferir a assinatura</h3><p class="muted">A assinatura é posicionada sozinha acima da linha “Matr.” no fim do documento. Arraste para ajustar, ou clique em outro ponto para incluir mais uma.</p>
   <div class="grid"><label class="fld">Tamanho da assinatura<input type="range" id="sigW" min="12" max="55" value="${Math.round(sigW * 100)}"></label>
   <label class="fld" style="justify-content:end"><span><input type="checkbox" id="ckCar" style="width:auto"> Incluir carimbo de verificação (nome, data/hora e código) abaixo da assinatura</span></label></div>
@@ -158,9 +165,9 @@ function viewArq() {
   const q = semAc(window.__fq || ''), L = DOCS.filter(d => !q || semAc([d.objeto, d.numero, d.codigo, d.unidade].join(' ')).includes(q));
   $('content').innerHTML = `<section class="view"><h2>Arquivo de DFD</h2><div class="stats"><div class="stat">DFD arquivados<strong>${DOCS.length}</strong></div></div>
   <label class="fld">Busca<input id="fq" value="${esc(window.__fq || '')}" placeholder="objeto, nº, código"></label>
-  ${L.length ? `<div class="table-wrap"><table><thead><tr><th>Assinado em</th><th>Objeto</th><th>Nº</th><th>Data do DFD</th><th>Código</th><th></th></tr></thead><tbody>${L.map(d => `<tr><td>${fd(d.criadoEm)}</td><td>${esc(d.objeto)}</td><td>${esc(d.numero || '')}</td><td>${fd(d.dataDoc)}</td><td><code>${esc(d.codigo)}</code></td><td><button type="button" class="small" data-a="ass" data-id="${esc(d.id)}">Baixar assinado</button><button type="button" class="small secondary" data-a="ori" data-id="${esc(d.id)}">Original</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Nenhum DFD arquivado.</p>'}</section>`;
+  ${L.length ? `<div class="table-wrap"><table><thead><tr><th>Assinado em</th><th>Objeto</th><th>Nº</th><th>Data do DFD</th><th>Código</th><th></th></tr></thead><tbody>${L.map(d => `<tr><td>${fd(d.criadoEm)}</td><td>${esc(d.objeto)}</td><td>${esc(d.numero || '')}</td><td>${fd(d.dataDoc)}</td><td><code>${esc(d.codigo)}</code></td><td>${d.origemWord ? '<span class="pill">Word</span> ' : ''}<button type="button" class="small" data-a="ass" data-id="${esc(d.id)}">Baixar assinado</button><button type="button" class="small secondary" data-a="ori" data-id="${esc(d.id)}">Original</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Nenhum DFD arquivado.</p>'}</section>`;
   $('fq').oninput = ev => { window.__fq = ev.target.value; clearTimeout(window.__t); window.__t = setTimeout(viewArq, 250); };
-  document.querySelectorAll('[data-a]').forEach(b => b.onclick = async () => { const d = DOCS.find(x => x.id === b.dataset.id), p = b.dataset.a === 'ass' ? d.pathAss : d.pathOrig; try { const u = (await UPA.files.urls([p]))[p]; if (!u) throw new Error('Arquivo não encontrado.'); baixar(await (await fetch(u)).blob(), b.dataset.a === 'ass' ? d.nomeAss : (d.nomeOriginal || 'original.pdf')); } catch (er) { notice(UPA.msg(er), true); } });
+  document.querySelectorAll('[data-a]').forEach(b => b.onclick = async () => { const d = DOCS.find(x => x.id === b.dataset.id), p = b.dataset.a === 'ass' ? d.pathAss : d.pathOrig; try { const u = (await UPA.files.urls([p]))[p]; if (!u) throw new Error('Arquivo não encontrado.'); baixar(await (await fetch(u)).blob(), b.dataset.a === 'ass' ? d.nomeAss : (d.nomeOriginal || 'original')); } catch (er) { notice(UPA.msg(er), true); } });
 }
 function viewConf() {
   $('content').innerHTML = `<section class="view"><h2>Conferir documento</h2><p class="muted">Envie um PDF para verificar se é idêntico a um DFD arquivado (original ou assinado), pelo código SHA-256 do arquivo.</p><label class="fld">PDF a conferir<input type="file" id="cfIn" accept="application/pdf,.pdf"></label><div id="cfOut"></div></section>`;

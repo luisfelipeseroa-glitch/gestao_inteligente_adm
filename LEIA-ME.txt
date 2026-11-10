@@ -151,3 +151,5 @@ DFD (modulos/dfd/)
 Importa o DFD preenchido (PDF), localiza a linha "Matr." no fim do documento e posiciona sozinho a assinatura acima dela (ajustável), com carimbo de verificação opcional.
 Gera o PDF assinado (original preservado), arquiva (coleção dfd_docs, anexos/dfd/<id>/), baixa e permite conferir autenticidade por SHA-256. Usa a imagem de assinatura cadastrada
 em Atestos > Assinatura. Sem SQL novo. Assinatura em imagem, não qualificada (ICP-Brasil/gov.br).
+DFD aceita também Word (.docx): converte no navegador (modulos/docx-pdf.js: docx-preview + html2canvas + pdf-lib) para PDF e assina; o .docx original fica arquivado. Visual aproximado
+(texto vira imagem); para fidelidade total, usar "Salvar como PDF" no Word. .doc antigo não é suportado.
