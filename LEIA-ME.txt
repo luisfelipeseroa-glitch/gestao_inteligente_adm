@@ -153,3 +153,12 @@ Gera o PDF assinado (original preservado), arquiva (coleção dfd_docs, anexos/d
 em Atestos > Assinatura. Sem SQL novo. Assinatura em imagem, não qualificada (ICP-Brasil/gov.br).
 DFD aceita também Word (.docx): converte no navegador (modulos/docx-pdf.js: docx-preview + html2canvas + pdf-lib) para PDF e assina; o .docx original fica arquivado. Visual aproximado
 (texto vira imagem); para fidelidade total, usar "Salvar como PDF" no Word. .doc antigo não é suportado.
+
+RESUMO DE INSUMOS (DFD > aba "Resumo de insumos (5 anos)")
+- Selecione varios DFDs (PDF ou Word) e/ou inclua os ja arquivados. O app le a tabela
+  "2. Demanda - Quantidade Solicitada" (codigo SIGMA, descricao, unidade, quant. 12 meses).
+  A tabela "3. Serie Historica" e ignorada.
+- O ano vem da DATA do documento (pode ser corrigido na lista). Janela = ultimos 5 anos
+  (ano atual-4 ate o ano atual). DFDs do mesmo ano se somam.
+- Gera Excel com abas Resumo (por insumo e ano, total, media), Detalhe e Arquivos lidos.
+- Leitura automatica: CONFIRA os numeros antes de usar oficialmente.

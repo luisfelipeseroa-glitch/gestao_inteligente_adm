@@ -14,7 +14,7 @@ let view = 'novo', CFG = { ...CFG0 }, SIGURL = '', DOCS = [], sigImg = null, pre
 let origBytes = null, origWord = false, wordHint = null, pdfBytes = null, pdfName = '', pdfDoc = null, hashOrig = '', marks = [], sigW = 0.28, titulo = '', dataDoc = '';
 
 function notice(t, erro) { const m = $('message'); m.textContent = t || ''; m.className = erro ? 'err' : ''; if (t) m.scrollIntoView({ block: 'nearest' }); }
-const VIEWS = [['novo', 'Novo DFD'], ['arq', 'Arquivo'], ['conf', 'Conferir documento']];
+const VIEWS = [['novo', 'Novo DFD'], ['arq', 'Arquivo'], ['res', 'Resumo de insumos (5 anos)'], ['conf', 'Conferir documento']];
 function nav() { $('nav').innerHTML = VIEWS.map(v => `<button type="button" data-v="${v[0]}" class="${v[0] === view ? 'active' : ''}">${v[1]}</button>`).join(''); document.querySelectorAll('#nav [data-v]').forEach(b => b.onclick = () => { view = b.dataset.v; render(); }); }
 async function sha256(buf) { const h = await crypto.subtle.digest('SHA-256', buf); return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join(''); }
 const cod = h => h.slice(0, 16).toUpperCase().replace(/(.{4})(?=.)/g, '$1-');
@@ -174,5 +174,5 @@ function viewConf() {
   $('cfIn').onchange = async ev => { const f = ev.target.files[0]; if (!f) return; const h = await sha256(await f.arrayBuffer()), a = DOCS.find(d => d.hashAss === h), o = DOCS.find(d => d.hashOrig === h), d = a || o;
     $('cfOut').innerHTML = d ? `<div class="alert ok"><b>✔</b><span>Idêntico ao ${a ? 'PDF assinado' : 'documento original'} arquivado: <b>${esc(d.objeto)}</b> · assinado em ${fd(d.criadoEm)} · código <code>${esc(d.codigo)}</code>.</span></div>` : `<div class="alert bad"><b>⛔</b><span>Este arquivo não corresponde a nenhum DFD arquivado (alterado ou de outra origem).</span></div>`; };
 }
-function render() { nav(); if (view === 'novo') viewNovo(); else if (view === 'arq') viewArq(); else viewConf(); }
+function render() { nav(); if (view === 'novo') viewNovo(); else if (view === 'arq') viewArq(); else if (view === 'res') viewResumo(); else viewConf(); }
 (async function init() { try { await UPA.ready(); await carregar(); render(); } catch (e) { notice(UPA.msg(e), true); } })();

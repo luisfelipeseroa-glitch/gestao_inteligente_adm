@@ -47,4 +47,16 @@
     } finally { box.remove(); }
   }
   window.docxParaPdf = docxParaPdf;
+  /* lê o texto e as tabelas de um .docx (sem gerar PDF): { texto, tabelas: [ [ [célula,...], ... ], ... ] } */
+  async function docxLer(arrayBuffer) {
+    await preparar();
+    var box = document.createElement('div'); box.style.cssText = 'position:fixed;left:-20000px;top:0;background:#fff;z-index:-1'; document.body.appendChild(box);
+    try {
+      await window.docx.renderAsync(arrayBuffer, box, null, { className: 'docx', inWrapper: false, breakPages: false, useBase64URL: true, renderHeaders: false, renderFooters: false });
+      var tabelas = Array.prototype.slice.call(box.querySelectorAll('table')).map(function (t) { return Array.prototype.slice.call(t.rows).map(function (r) { return Array.prototype.slice.call(r.cells).map(function (c) { return (c.innerText || c.textContent || '').replace(/\s+/g, ' ').trim(); }); }); });
+      return { texto: (box.innerText || box.textContent || ''), tabelas: tabelas };
+    } finally { box.remove(); }
+  }
+  window.docxLer = docxLer;
+
 })();
