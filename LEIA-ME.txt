@@ -162,3 +162,13 @@ RESUMO DE INSUMOS (DFD > aba "Resumo de insumos (5 anos)")
   (ano atual-4 ate o ano atual). DFDs do mesmo ano se somam.
 - Gera Excel com abas Resumo (por insumo e ano, total, media), Detalhe e Arquivos lidos.
 - Leitura automatica: CONFIRA os numeros antes de usar oficialmente.
+
+PERFIL RESTRITO (ex.: Coordenacao de Enfermagem)
+- Modulos liberados no perfil "enfermagem": Painel, POP, Central de Servicos, RH e DP,
+  Adequacao SUBHUE, Treinamentos, Guarda de pertences (e Orientacoes). Edite em perfis.js.
+- Criar o usuario: Supabase > Authentication > Users > Add user (e-mail + senha, "Auto confirm").
+  Depois, no SQL Editor:
+    update auth.users set raw_app_meta_data = coalesce(raw_app_meta_data,'{}'::jsonb) || '{"perfil":"enfermagem"}'::jsonb
+    where email = 'EMAIL_DA_COORDENADORA';
+  Ela deve sair e entrar de novo. Sem "perfil", o usuario ve tudo (como o seu).
+- Limite: a restricao esconde menus e bloqueia a navegacao do portal; nao e barreira no banco.
