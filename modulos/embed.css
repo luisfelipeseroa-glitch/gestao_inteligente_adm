@@ -155,3 +155,14 @@ html.embed[data-mod=dfd] nav button{background:transparent;color:#234866}
 html.embed[data-mod=dfd] nav button.active{background:#123e70;color:#fff}
 html.embed[data-mod=dfd] .secondary{background:#e5edf4;color:#153b61}
 html.embed[data-mod=dfd] .danger,html.embed[data-mod=dfd] .sig .x{background:#9c3030}
+
+/* ---------- ser (vagas) ---------- */
+html.embed[data-mod=ser]{background:#f3f7fc}
+html.embed[data-mod=ser] body{background:#f3f7fc}
+html.embed[data-mod=ser] header,html.embed[data-mod=ser] footer{display:none}
+html.embed[data-mod=ser] main{margin:14px auto;max-width:none;padding:0 14px}
+html.embed[data-mod=ser] button{background:#1f5fa8}
+html.embed[data-mod=ser] .secondary{background:#e5edf4;color:#153b61}
+html.embed[data-mod=ser] .ser-chip{background:#fff;color:#17314d}
+html.embed[data-mod=ser] .ser-chip.on{background:#123e70;color:#fff}
+html.embed[data-mod=ser] .ser-wrap{max-height:calc(100vh - 250px)}
