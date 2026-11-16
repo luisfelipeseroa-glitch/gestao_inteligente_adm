@@ -170,8 +170,8 @@ function verFoto(src){imgFoto.src=src;modalFoto.style.display='flex';}
 function catalogo(){const m=new Map();DB.pedidos.forEach(p=>{const k=norm(p.ins);if(!m.has(k))m.set(k,{ins:p.ins,seg:p.seg,un:p.un});});return m;}
 function cruzamento(){
   const ap=new Map();DB.pedidos.forEach(p=>{const k=p.pedido+'|'+norm(p.ins);const o=ap.get(k)||{pedido:p.pedido,mesano:p.mesano,data:p.data,seg:p.seg,ins:p.ins,un:p.un,ap:0,rec:0,docs:new Set()};o.ap+=p.qtd;ap.set(k,o);});
-  const semPedido=[];
-  DB.receb.forEach(r=>{const k=r.pedido+'|'+chave(r.ins);const o=ap.get(k);if(o){o.rec+=r.qtd;if(r.doc)o.docs.add(r.doc);}else semPedido.push(r);});
+  const semPedido=[];const pedOK=new Set(DB.pedidos.map(p=>p.pedido));
+  DB.receb.forEach(r=>{const k=r.pedido+'|'+chave(r.ins);const o=ap.get(k);if(o){o.rec+=r.qtd;if(r.doc)o.docs.add(r.doc);}else if(pedOK.has(r.pedido))semPedido.push(r);});
   const linhas=[...ap.values()].map(o=>({...o,dif:o.ap-o.rec,docs:[...o.docs].join(', ')}));
   return{linhas,semPedido};
 }
@@ -209,7 +209,7 @@ function render(){
 
   // Recebidos
   let fr=fRecPed.value,rec=DB.receb.filter(r=>(!fr||r.pedido===fr)&&filtroBusca('fRecBusca',r.ins)).sort((a,b)=>ordData(b.data).localeCompare(ordData(a.data)));
-  tbReceb.innerHTML=rec.length?`<table><tr><th>Pedido</th><th>Data</th><th>Insumo</th><th class="n">Qtd recebida</th><th>Nota/Doc</th><th>Fotos</th><th class="np"></th></tr>${rec.slice(0,LIM).map(r=>`<tr><td>${esc(r.pedido)}</td><td>${esc(r.data)}</td><td>${esc(r.ins)}</td><td class="n">${fmt(r.qtd)}</td><td>${esc(r.doc)}</td><td><div class="fotos">${(r.fotos||[]).map(f=>String(f).startsWith('data:')?`<img src="${f}" onclick="verFoto(this.src)">`:`<img data-p="${esc(f)}" alt="foto" onclick="verFoto(this.src)">`).join('')}<label class="btn sec peq np" style="cursor:pointer">📷<input type="file" accept="image/*" multiple hidden onchange="addFoto('${r.id}',this)"></label></div></td><td class="np"><button class="btn perigo peq" onclick="excluirRec('${r.id}')">✕</button></td></tr>`).join('')}</table>`:'<div class="vazio">Nenhum recebimento lançado.</div>';
+  tbReceb.innerHTML=rec.length?`<table><tr><th>Pedido</th><th>Data</th><th>Insumo</th><th class="n">Qtd recebida</th><th>Nota/Doc</th><th>Fotos</th><th class="np"></th></tr>${rec.slice(0,LIM).map(r=>`<tr><td>${/^EMERG/.test(r.pedido)?'<span class="tag y">Emergencial</span>':esc(r.pedido)}</td><td>${esc(r.data)}</td><td>${esc(r.ins)}</td><td class="n">${fmt(r.qtd)}</td><td>${esc(r.doc)}</td><td><div class="fotos">${(r.fotos||[]).map(f=>String(f).startsWith('data:')?`<img src="${f}" onclick="verFoto(this.src)">`:`<img data-p="${esc(f)}" alt="foto" onclick="verFoto(this.src)">`).join('')}<label class="btn sec peq np" style="cursor:pointer">📷<input type="file" accept="image/*" multiple hidden onchange="addFoto('${r.id}',this)"></label></div></td><td class="np"><button class="btn perigo peq" onclick="excluirRec('${r.id}')">✕</button></td></tr>`).join('')}</table>`:'<div class="vazio">Nenhum recebimento lançado.</div>';
 
   // SIGMA
   let ft=fSigTipo.value,sg=DB.sigma.filter(s=>(!ft||s.tipo===ft)&&filtroBusca('fSigBusca',s.ins));
@@ -241,7 +241,7 @@ function render(){
   const nPed=new Set(DB.pedidos.map(p=>p.pedido)).size;
   const comRec=new Set(DB.receb.map(r=>r.pedido));
   const faltaTot=linhas.filter(l=>l.dif>0&&comRec.has(l.pedido)); // só pedidos que já têm recebimento lançado
-  kpis.innerHTML=[[nPed,'Pedidos aprovados'],[DB.receb.length,'Lançamentos de recebido'],[DB.sigma.length,'Movimentações SIGMA'],[faltaTot.length,'Itens com falta de entrega','alerta'],[fmt(faltaTot.reduce((s,l)=>s+l.dif,0)),'Unidades a cobrar da OS','alerta'],[est.filter(e=>e.saldo<0).length,'Itens com estoque negativo','alerta']].map(([n,l,c])=>`<div class="kpi ${c||''}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+  kpis.innerHTML=[[nPed,'Pedidos aprovados'],[DB.receb.length,'Lançamentos de recebido'],[fmt(DB.receb.filter(r=>/^EMERG/.test(r.pedido)).reduce((s,r)=>s+r.qtd,0)),'Unid. recebidas emergencial'],[DB.sigma.length,'Movimentações SIGMA'],[faltaTot.length,'Itens com falta de entrega','alerta'],[fmt(faltaTot.reduce((s,l)=>s+l.dif,0)),'Unidades a cobrar da OS','alerta'],[est.filter(e=>e.saldo<0).length,'Itens com estoque negativo','alerta']].map(([n,l,c])=>`<div class="kpi ${c||''}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
   const porPed={};linhas.filter(l=>l.dif>0).forEach(l=>{const o=porPed[l.pedido]||(porPed[l.pedido]={mesano:l.mesano,data:l.data,itens:0,un:0,rec:0});o.itens++;o.un+=l.dif;});
   linhas.forEach(l=>{if(porPed[l.pedido]&&l.rec)porPed[l.pedido].rec=1;});
   const pp=Object.entries(porPed).sort((a,b)=>ordData(b[1].data).localeCompare(ordData(a[1].data)));
