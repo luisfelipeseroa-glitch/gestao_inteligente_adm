@@ -179,3 +179,7 @@ Logos em assets/GIUS_*.png (laranja e azul; vertical, horizontal, icone). Para u
 DOCUMENTOS DE RH: cabecalho com logos da UPA e do Instituto Gnosis; rodape "Criado e editado por
 <nome> | GIUS (...)". O nome vem de user_metadata.nome do login (Supabase); sem nome, aparece o e-mail.
   update auth.users set raw_user_meta_data = coalesce(raw_user_meta_data,'{}'::jsonb) || '{"nome":"NOME COMPLETO"}'::jsonb where email='EMAIL';
+
+INSTALAR NO CELULAR (app): abrir o endereco do portal no Chrome (Android) > menu ⋮ > "Instalar app" /
+"Adicionar a tela inicial". No iPhone: Safari > Compartilhar > "Adicionar a Tela de Inicio".
+Arquivos: manifest.webmanifest, sw.js e assets/icon-*.png.
