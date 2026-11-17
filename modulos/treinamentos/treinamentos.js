@@ -229,7 +229,7 @@ async function imprimir(t) {
   <tr><td><b>Instrutor:</b> ${esc(t.instrutor)}</td><td><b>Local:</b> ${esc(t.local || '')}</td></tr>${t.conteudo ? `<tr><td colspan="2"><b>Conteúdo programático:</b> ${esc(t.conteudo)}</td></tr>` : ''}</table>
   <table class="pl"><thead><tr><th style="width:6%">Nº</th><th>Nome</th><th style="width:13%">Matrícula</th><th style="width:20%">Função</th><th style="width:30%">Assinatura / registro de presença</th></tr></thead><tbody>
   ${part.map((p, i) => { const a = assinou(t, p.id); return `<tr style="height:11mm"><td>${i + 1}</td><td>${esc(p.nome)}</td><td>${esc(p.matricula)}</td><td>${esc(p.funcao)}</td><td>${a ? `${a.foto ? `<img src="${esc(a.foto)}" alt="" style="float:left;margin-right:5px">` : ''}<small>Presença registrada por ${a.metodo === 'qr' ? 'QR do crachá' : 'reconhecimento facial'} em ${new Date(a.ts).toLocaleString('pt-BR')}</small>` : ''}</td></tr>`; }).join('')}</tbody></table>
-  <p class="nota">Presença registrada eletronicamente no sistema Gestão Inteligente UPA Rocinha, por leitura do QR do crachá individual ou reconhecimento facial, com data e hora. Linhas em branco: assinatura manual.</p>
+  <p class="nota">Presença registrada eletronicamente no sistema GIUS (Gestão Inteligente nas Unidades de Saúde) · Gestores UPA Rocinha, por leitura do QR do crachá individual ou reconhecimento facial, com data e hora. Linhas em branco: assinatura manual.</p>
   <div class="assin"><div>${esc(t.instrutor)}<br>Instrutor${t.cargoInstrutor ? ' — ' + esc(t.cargoInstrutor) : ''}</div><div>Luis Felipe W. Seroa da Motta<br>Coordenador Administrativo · CNES 6507409</div></div>`;
   const root = $('printRoot'); root.innerHTML = `<div class="doc">${html}</div>`; root.classList.remove('hidden');
   await aguardarImgs(root); setTimeout(() => { window.print(); root.classList.add('hidden'); }, 100);
@@ -277,7 +277,7 @@ async function pdfLista(t) {
     [String(i + 1), p.nome, p.matricula, p.funcao, reg].forEach((v, k) => pg.drawText(cut(v, (cols[k + 1] || W - M) - cols[k] - 6 + (k === 4 ? 100 : 0), k === 4 && !a ? f : f, 8.5), { x: cols[k], y, size: 8.5, font: f, color: k === 4 && !a ? rgb(0.6, 0.1, 0.1) : rgb(0, 0, 0) }));
     pg.drawLine({ start: { x: M - 2, y: y - 4 }, end: { x: W - M + 2, y: y - 4 }, thickness: 0.4, color: rgb(0.75, 0.78, 0.82) }); y -= 15;
   });
-  y -= 14; if (y < 60) nova(); pg.drawText('Presença registrada eletronicamente no sistema Gestão Inteligente UPA Rocinha (QR do crachá ou reconhecimento facial).', { x: M, y, size: 7.5, font: f, color: rgb(0.3, 0.3, 0.3) });
+  y -= 14; if (y < 60) nova(); pg.drawText('Presença registrada eletronicamente no sistema GIUS (Gestão Inteligente nas Unidades de Saúde) · Gestores UPA Rocinha (QR do crachá ou reconhecimento facial).', { x: M, y, size: 7.5, font: f, color: rgb(0.3, 0.3, 0.3) });
   doc.setSubject('Lista de presença — ' + san(t.tema)); return await doc.save();
 }
 function baixarPdf(u8, nome) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' })); a.download = nome; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }

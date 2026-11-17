@@ -11,6 +11,8 @@ const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(',', 
 const semAc = t => String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const diasEntre = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5);
 const meuEmail = () => { const u = window.UPA && UPA.user(); return (u && u.email) || ''; };
+/* Nome de quem está logado (user_metadata.nome); sem nome cadastrado, usa o e-mail. */
+const meuNome = () => { const u = window.UPA && UPA.user(); const m = (u && u.user_metadata) || {}; return m.nome || m.full_name || m.name || (u && u.email) || ''; };
 const C = () => UPA.client();
 const T = 'rhdp_registros';
 function notice(t, erro) { const m = $('message'); m.textContent = t || ''; m.className = erro ? 'err' : ''; if (t) m.scrollIntoView({ block: 'nearest' }); }
@@ -28,13 +30,13 @@ async function listar(col) {
   return (r.data || []).map(x => ({ ...x.dados, id: x.id }));
 }
 async function salvar(col, o) {
-  const d = { ...o }; d.id = d.id || uuid(); d.atualizadoEm = new Date().toISOString(); d.atualizadoPor = meuEmail();
-  if (!d.criadoEm) { d.criadoEm = d.atualizadoEm; d.criadoPor = d.atualizadoPor; }
+  const d = { ...o }; d.id = d.id || uuid(); d.atualizadoEm = new Date().toISOString(); d.atualizadoPor = meuEmail(); d.atualizadoPorNome = meuNome();
+  if (!d.criadoEm) { d.criadoEm = d.atualizadoEm; d.criadoPor = d.atualizadoPor; d.criadoPorNome = d.atualizadoPorNome; }
   const r = await C().from(T).upsert({ id: d.id, colecao: col, dados: d, atualizado_por: d.atualizadoPor, updated_at: d.atualizadoEm });
   if (r.error) throw r.error; return d;
 }
 async function inserir(col, o) {
-  const d = { ...o }; d.atualizadoEm = new Date().toISOString(); d.atualizadoPor = meuEmail(); d.criadoEm = d.atualizadoEm; d.criadoPor = d.atualizadoPor;
+  const d = { ...o }; d.atualizadoEm = new Date().toISOString(); d.atualizadoPor = meuEmail(); d.atualizadoPorNome = meuNome(); d.criadoEm = d.atualizadoEm; d.criadoPor = d.atualizadoPor; d.criadoPorNome = d.atualizadoPorNome;
   const r = await C().from(T).insert({ id: d.id, colecao: col, dados: d, atualizado_por: d.atualizadoPor, updated_at: d.atualizadoEm });
   if (r.error) throw r.error; return d;
 }
@@ -327,9 +329,14 @@ function parecerLocal() {
 /* Cabeçalhos: documentos do colaborador (orientação, advertência, avaliação) = Instituto Gnosis + SUS;
    relatórios (evolução, desligamento) = logo da UPA. O SUS usa assets/logo-sus.png; sem o arquivo, mostra o texto "SUS". */
 const logoSus = () => `<img src="../../assets/logo-sus.png" alt="SUS" style="height:56px" onerror="this.outerHTML='<span style=&quot;font:800 22pt Arial,sans-serif;color:#0b5ea8;letter-spacing:2px&quot;>SUS</span>'">`;
-const logos = tipo => tipo === 'upa'
-  ? `<div class="logos" style="justify-content:center"><img src="../../assets/logo-upa.png" alt="UPA Rocinha" style="height:62px"></div>`
-  : `<div class="logos"><img src="../../assets/logo-gnosis.jpg" alt="Instituto Gnosis" style="height:60px">${logoSus()}</div>`;
+/* Cabeçalho de todos os documentos de RH: logos da UPA e do Instituto Gnosis. */
+const logos = () => `<div class="logos"><img src="../../assets/logo-upa.png" alt="UPA Rocinha" style="height:58px"><img src="../../assets/logo-gnosis.jpg" alt="Instituto Gnosis" style="height:58px"></div>`;
+/* Rodapé: quem criou/editou o documento + GIUS. */
+const rodapeGius = r => {
+  const cr = (r && (r.criadoPorNome || r.criadoPor)) || meuNome(), ed = (r && (r.atualizadoPorNome || r.atualizadoPor)) || cr;
+  const quem = cr === ed ? 'Criado e editado por ' + esc(cr) : 'Criado por ' + esc(cr) + ' · Editado por ' + esc(ed);
+  return `<div class="gius-rodape">${quem} | GIUS (Gestão Inteligente nas Unidades de Saúde)</div>`;
+};
 const caixaCab = (r, assunto, extra, nro) => `<table class="hdrbox"><tr><td>Data: ${fd(r.data)}</td><td>Nº: ${esc(nro != null ? nro : (r.numero || ''))}</td></tr><tr><td>Unidade: ${esc(CFG.unidade)}</td><td>Funcionário: ${esc(r.nome)}</td></tr><tr><td colspan="2">Assunto: ${esc(assunto)}${extra || ''}</td></tr></table>`;
 const assinaturas = (r, recusou) => `<div class="assin"><div>${recusou ? 'Colaborador recusou-se a assinar' : ''}<br>Funcionário(a)</div><div>${esc(CFG.coordNome)}<br>${esc(CFG.coordCargo)}${CFG.coordCnes ? '<br>CNES ' + esc(CFG.coordCnes) : ''}<br>Coordenador(a)</div><div>Testemunha</div><div>Testemunha</div></div>`;
 function docCond(r) {
@@ -379,10 +386,10 @@ function docEvol(r) {
 const aguardarImgs = root => Promise.all(Array.from(root.querySelectorAll('img')).map(im => im.complete && im.naturalWidth ? 0 : new Promise(r => { im.onload = im.onerror = () => r(); setTimeout(r, 4000); })));
 async function imprimirDoc(k, r) {
   const E = ENT[k]; const html = await E.imprimir(r);
-  const root = $('printRoot'); root.innerHTML = `<div class="doc">${html}</div>`; root.classList.remove('hidden');
+  const root = $('printRoot'); root.innerHTML = `<div class="doc">${html}${rodapeGius(r)}</div>`; root.classList.remove('hidden');
   await aguardarImgs(root); setTimeout(() => { window.print(); root.classList.add('hidden'); }, 100);
 }
-async function imprimirHtml(html) { const root = $('printRoot'); root.innerHTML = `<div class="doc">${html}</div>`; root.classList.remove('hidden'); await aguardarImgs(root); setTimeout(() => { window.print(); root.classList.add('hidden'); }, 100); }
+async function imprimirHtml(html) { const root = $('printRoot'); root.innerHTML = `<div class="doc">${html}${rodapeGius(null)}</div>`; root.classList.remove('hidden'); await aguardarImgs(root); setTimeout(() => { window.print(); root.classList.add('hidden'); }, 100); }
 
 /* ---------------- Painel ---------------- */
 async function viewPainel() {

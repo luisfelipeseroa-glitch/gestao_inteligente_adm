@@ -172,3 +172,10 @@ PERFIL RESTRITO (ex.: Coordenacao de Enfermagem)
     where email = 'EMAIL_DA_COORDENADORA';
   Ela deve sair e entrar de novo. Sem "perfil", o usuario ve tudo (como o seu).
 - Limite: a restricao esconde menus e bloqueia a navegacao do portal; nao e barreira no banco.
+
+NOME E LOGO: o app agora se chama GIUS | Gestores UPA Rocinha (Gestao Inteligente nas Unidades de Saude).
+Logos em assets/GIUS_*.png (laranja e azul; vertical, horizontal, icone). Para usar a azul, troque
+"laranja" por "azul" em index.html e lib/upa-db.js.
+DOCUMENTOS DE RH: cabecalho com logos da UPA e do Instituto Gnosis; rodape "Criado e editado por
+<nome> | GIUS (...)". O nome vem de user_metadata.nome do login (Supabase); sem nome, aparece o e-mail.
+  update auth.users set raw_user_meta_data = coalesce(raw_user_meta_data,'{}'::jsonb) || '{"nome":"NOME COMPLETO"}'::jsonb where email='EMAIL';

@@ -126,7 +126,7 @@ function buildDoc(d, a, integr) {
   corpo += sec('Formulários e documentos relacionados', bul(c.formularios));
   corpo += sec('Referências', bul(c.referencias));
   corpo += sec('Observação importante', par(c.observacao));
-  if (meus.length) corpo += `<div class="nota">Assinaturas eletrônicas registradas no sistema Gestão Inteligente UPA Rocinha (login individual e confirmação por senha). Para conferir, leia o QR Code do quadro de aprovações ou use o código impresso em cada carimbo. SHA-256 do conteúdo: ${esc(d.hash)}.</div>`;
+  if (meus.length) corpo += `<div class="nota">Assinaturas eletrônicas registradas no sistema GIUS (Gestão Inteligente nas Unidades de Saúde) · Gestores UPA Rocinha (login individual e confirmação por senha). Para conferir, leia o QR Code do quadro de aprovações ou use o código impresso em cada carimbo. SHA-256 do conteúdo: ${esc(d.hash)}.</div>`;
   const foot = `Cópia não controlada quando impressa ou transmitida eletronicamente<br>Propriedade UPA ROCINHA.`;
   return `<div class="doc">${wmTxt ? `<div class="wm">${esc(wmTxt)}</div>` : ''}<table class="pg"><thead><tr><td>${head}</td></tr></thead><tbody><tr><td>${corpo}</td></tr></tbody><tfoot><tr><td><div class="pf">${foot}</div></td></tr></tfoot></table></div>`;
 }

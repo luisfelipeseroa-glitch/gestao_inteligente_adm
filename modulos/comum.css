@@ -93,3 +93,6 @@ footer{text-align:center;background:#10345d;color:#fff;padding:20px;margin-top:3
 .tabs2{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.tabs2 button{background:#e5edf4;color:#153b61}.tabs2 button.on{background:#123e70;color:#fff}
 .grow{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}@media(max-width:900px){.grow{grid-template-columns:1fr}}
 .up{border:2px dashed #9fb7cc;border-radius:12px;padding:18px;text-align:center;background:#f6fafd}
+
+.doc .gius-rodape{margin-top:14px;padding-top:4px;border-top:1px solid #9aa7b8;font-size:8pt;color:#44546a;text-align:center}
+@media print{.doc .gius-rodape{position:fixed;left:0;right:0;bottom:0;margin:0;background:#fff}#printRoot .doc:has(.gius-rodape){padding-bottom:9mm}}

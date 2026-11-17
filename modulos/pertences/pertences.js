@@ -255,7 +255,7 @@ function imprimirTermo(p, U) {
   <p style="text-align:justify;font-size:10.5pt">Eu, <b>${esc(p.entrega.nome)}</b>, ${esc(p.entrega.docTipo)} nº ${esc(p.entrega.docNum)}, ${esc(p.entrega.parentesco.toLowerCase())}${p.entrega.tel ? ', telefone ' + esc(p.entrega.tel) : ''}, declaro que recebi em ${dh(p.entrega.ts)} os pertences acima descritos, conferidos na minha presença, e que nada mais tenho a reclamar quanto a eles.</p>
   <p style="font-size:9.5pt"><b>Liberação autorizada por</b> ${esc(p.autorizacao.por)} em ${dh(p.autorizacao.ts)}. <b>Entregue por</b> ${esc(p.entrega.por)}.</p>
   <div style="display:flex;gap:10mm;align-items:flex-end;margin-top:10mm">${U[p.assinPath] ? `<div style="flex:1;text-align:center"><img src="${esc(U[p.assinPath])}" alt="" style="max-height:30mm;max-width:100%"><div style="border-top:1px solid #000;padding-top:3px">${esc(p.entrega.nome)}</div></div>` : ''}${U[p.docPath] ? `<div style="flex:1;text-align:center"><img src="${esc(U[p.docPath])}" alt="" style="max-height:55mm;max-width:100%"><div style="font-size:8pt">Documento apresentado</div></div>` : ''}</div>
-  <p class="nota">Registro eletrônico no sistema Gestão Inteligente UPA Rocinha. Assinatura colhida em tela e foto do documento arquivadas com data e hora.</p>`);
+  <p class="nota">Registro eletrônico no sistema GIUS (Gestão Inteligente nas Unidades de Saúde) · Gestores UPA Rocinha. Assinatura colhida em tela e foto do documento arquivadas com data e hora.</p>`);
 }
 function viewEtq() {
   const livres = LIST.filter(p => p.status === S.LIVRE).sort((a, b) => String(a.numero).localeCompare(String(b.numero)));

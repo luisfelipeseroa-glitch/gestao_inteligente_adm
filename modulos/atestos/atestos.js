@@ -148,7 +148,7 @@ async function gerarAtestado(quando, codigo) {
     if (ang) opts.rotate = degrees(ang);
     pg.drawImage(png, opts);
   });
-  doc.setProducer('Gestão Inteligente UPA Rocinha — Atestos'); doc.setSubject('Documento atestado eletronicamente — cód. ' + codigo);
+  doc.setProducer('GIUS (Gestão Inteligente nas Unidades de Saúde) · Gestores UPA Rocinha — Atestos'); doc.setSubject('Documento atestado eletronicamente — cód. ' + codigo);
   return await doc.save();
 }
 

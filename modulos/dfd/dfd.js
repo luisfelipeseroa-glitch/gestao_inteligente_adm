@@ -118,7 +118,7 @@ async function gerarAssinado(img) {
     if (ang === 0) { u = bx; v = dy; } else if (ang === 90) { u = dy; v = H - bx; } else if (ang === 180) { u = W - bx; v = H - dy; } else { u = W - dy; v = bx; }
     const o = { x: u, y: H - v, width: bw, height: bh }; if (ang) o.rotate = degrees(ang); pg.drawImage(png, o);
   });
-  doc.setProducer('Gestão Inteligente UPA Rocinha — DFD'); return await doc.save();
+  doc.setProducer('GIUS (Gestão Inteligente nas Unidades de Saúde) · Gestores UPA Rocinha — DFD'); return await doc.save();
 }
 async function salvar(e) {
   e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));

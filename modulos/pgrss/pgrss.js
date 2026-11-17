@@ -369,7 +369,7 @@ function buildPGRSS(D) {
     }
     corpo += ax;
   }
-  corpo += `<div class="nota">Documento emitido pelo sistema Gestão Inteligente UPA Rocinha em ${agora()} por ${esc(meuEmail())}. Os registros foram lançados por usuários identificados do sistema. Este documento só tem validade como PGRSS após revisão e assinatura do responsável técnico e da direção da unidade.</div>`;
+  corpo += `<div class="nota">Documento emitido pelo sistema GIUS (Gestão Inteligente nas Unidades de Saúde) · Gestores UPA Rocinha em ${agora()} por ${esc(meuEmail())}. Os registros foram lançados por usuários identificados do sistema. Este documento só tem validade como PGRSS após revisão e assinatura do responsável técnico e da direção da unidade.</div>`;
   return envelope(D, 'Plano de Gerenciamento de Resíduos de Serviços de Saúde — PGRSS', corpo);
 }
 function buildMensal(D) {
