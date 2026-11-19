@@ -187,3 +187,9 @@ Arquivos: manifest.webmanifest, sw.js e assets/icon-*.png.
 CALENDARIO (Manutencao): alem do plano preventivo dos relatorios, lista todos os chamados da Central de
 Servicos (todas as empresas). Previsto = prazo (ou data de abertura); Executado = data realizada.
 Arquivo: calendario-central.js. Os filtros de competencia e empresa valem para as duas fontes.
+
+PERFIS DE ACESSO (perfis.js) - definidos em app_metadata.perfil do usuario no Supabase:
+- sem perfil = ve tudo (coord.adm, coord.enf, rotina.adm)
+- rotina_enf: Central, Calendario, Documentos, UPA Fluxo, POP, DFD, Treinamentos, Guarda de pertences, Entrega de EPI
+- almox_externo (Antonio Moyses): Central, Calendario, Documentos, Almoxarifado, Entrega de EPI
+  update auth.users set raw_app_meta_data = coalesce(raw_app_meta_data,'{}'::jsonb) || '{"perfil":"rotina_enf"}'::jsonb where email='...';
