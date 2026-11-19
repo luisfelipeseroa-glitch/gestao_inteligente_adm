@@ -183,3 +183,7 @@ DOCUMENTOS DE RH: cabecalho com logos da UPA e do Instituto Gnosis; rodape "Cria
 INSTALAR NO CELULAR (app): abrir o endereco do portal no Chrome (Android) > menu ⋮ > "Instalar app" /
 "Adicionar a tela inicial". No iPhone: Safari > Compartilhar > "Adicionar a Tela de Inicio".
 Arquivos: manifest.webmanifest, sw.js e assets/icon-*.png.
+
+CALENDARIO (Manutencao): alem do plano preventivo dos relatorios, lista todos os chamados da Central de
+Servicos (todas as empresas). Previsto = prazo (ou data de abertura); Executado = data realizada.
+Arquivo: calendario-central.js. Os filtros de competencia e empresa valem para as duas fontes.
