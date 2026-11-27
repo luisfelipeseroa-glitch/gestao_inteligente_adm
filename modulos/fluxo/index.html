@@ -469,11 +469,11 @@ document.addEventListener('visibilitychange',async()=>{if(!document.hidden&&remo
 /* ================= Login e início ================= */
 function telaLogin(){
   $('#tabs').style.display='none';$('#sync').textContent='';
-  $('#app').innerHTML=`<div class="card login"><h2 style="margin-top:0">Entrar</h2><form id="lg"><label>E-mail<input name="e" type="email" required autocomplete="username"></label><label>Senha<input name="s" type="password" required autocomplete="current-password"></label><button class="b1" style="width:100%">Entrar</button></form><p style="text-align:center"><a href="#" data-a="config">Alterar conexão</a></p></div>`;
+  $('#app').innerHTML=`<div class="card login"><h2 style="margin-top:0">Entrar</h2><form id="lg"><label>Matrícula<input name="e" type="text" required autocomplete="username" autocapitalize="none" spellcheck="false"></label><label>Senha<input name="s" type="password" required autocomplete="current-password"></label><button class="b1" style="width:100%">Entrar</button></form><p style="text-align:center"><a href="#" data-a="config">Alterar conexão</a></p></div>`;
   $('#lg').addEventListener('submit',async e=>{
     e.preventDefault();const fd=new FormData(e.target);
-    const {data:d,error}=await sb.auth.signInWithPassword({email:fd.get('e'),password:fd.get('s')});
-    if(error){toast('Não foi possível entrar: '+error.message);return}
+    let d,error;try{({data:d,error}=await UPA.entrar(fd.get('e'),fd.get('s')))}catch(x){error=x}
+    if(error){toast('Não foi possível entrar: '+UPA.msg(error));return}
     user=d.user;await iniciar();
   });
 }

@@ -80,8 +80,8 @@ table.lista td img{width:48px;height:48px;object-fit:cover;border-radius:6px}
 <div id="telaLogin" class="solo" hidden>
   <form class="card" id="formLogin">
     <h2>Entrar</h2>
-    <label>E-mail</label>
-    <input type="email" id="lEmail" autocomplete="username" required>
+    <label>Matrícula</label>
+    <input type="text" id="lEmail" autocomplete="username" autocapitalize="none" spellcheck="false" required>
     <label>Senha</label>
     <input type="password" id="lSenha" autocomplete="current-password" required>
     <button class="b" type="submit" id="btnLogin">Entrar</button>
@@ -370,7 +370,7 @@ function falha(e){
   alert('Erro: '+m+dica);
 }
 function traduzErro(m){
-  if(/Invalid login credentials/i.test(m))return 'E-mail ou senha incorretos.';
+  if(/Invalid login credentials/i.test(m))return 'Matrícula ou senha incorretos.';
   if(/Email not confirmed/i.test(m))return 'E-mail ainda não confirmado (no Supabase, crie o usuário marcando "Auto Confirm User").';
   if(/Failed to fetch|NetworkError/i.test(m))return 'Sem conexão com o banco. Verifique a internet e a URL do projeto.';
   return m;
@@ -402,7 +402,7 @@ $('formLogin').addEventListener('submit',async e=>{
   e.preventDefault();
   $('lErro').textContent='';$('btnLogin').disabled=true;
   try{
-    const {data,error}=await sb.auth.signInWithPassword({email:$('lEmail').value.trim(),password:$('lSenha').value});
+    const {data,error}=await UPA.entrar($('lEmail').value,$('lSenha').value);
     if(error){$('lErro').textContent=traduzErro(error.message);return;}
     $('lSenha').value='';
     await entrar(data.session);
