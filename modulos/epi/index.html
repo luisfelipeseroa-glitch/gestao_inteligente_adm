@@ -411,7 +411,7 @@ $('formLogin').addEventListener('submit',async e=>{
 });
 $('btnSair').onclick=async()=>{
   pararCam();
-  try{await sb.auth.signOut();}catch(e){}
+  try{await UPA.logout();}catch(e){}
   usuario=null;funcs=[];epis=[];regsAtuais=[];
   tela('login');
 };
