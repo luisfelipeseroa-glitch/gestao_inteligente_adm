@@ -360,7 +360,7 @@ A.conferir=id=>{
   const m=data.modelos.find(x=>x.id===id);if(!m)return;
   const el=abrirModal(`<h3>${esc(m.nome)}</h3><form>
   <label>Responsável *<input name="resp" required value="${esc(localStorage.getItem('upa_resp')||user?.email||'')}"></label>
-  <label>Turno<select name="turno">${['Manhã','Tarde','Noite','Plantão diurno','Plantão noturno'].map(t=>`<option>${t}</option>`).join('')}</select></label>
+  <label>Turno<select name="turno">${['Dia (07h–19h)','Noite (19h–07h)'].map(t=>`<option>${t}</option>`).join('')}</select></label>
   <button type="button" class="btn sec" id="todosC" style="width:100%;margin-bottom:6px">Marcar tudo como conforme</button>
   ${m.itens.map((t,i)=>`<div class="ci"><div>${esc(t)}</div><div class="tri"><label><input type="radio" name="i${i}" value="c" ${i===0?'required':''}>Conforme</label><label class="nc"><input type="radio" name="i${i}" value="nc">Não conf.</label><label><input type="radio" name="i${i}" value="na">N/A</label></div></div>`).join('')}
   <label style="margin-top:10px">Observações<textarea name="obs" rows="2"></textarea></label>
