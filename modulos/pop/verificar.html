@@ -1,0 +1,34 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Conferir POP | UPA Rocinha</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:#17314d;background:#eef3f7}*{box-sizing:border-box}body{margin:0}
+header{background:#10345d;color:#fff;padding:14px 18px;display:flex;align-items:center;gap:14px}header img{height:46px;background:#fff;border-radius:8px;padding:4px}header h1{font-size:1.1rem;margin:0}
+main{max-width:640px;margin:20px auto;padding:0 14px}.card{background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 15px #102f5612;margin-bottom:14px}
+.res{border-left:6px solid #12805c;background:#e6f6ee}.res.bad{border-color:#b42318;background:#fdeceb}.res.warn{border-color:#c98a00;background:#fff6dc}
+h2{margin:0 0 6px;font-size:1.2rem}table{border-collapse:collapse;width:100%;font-size:.88rem;margin-top:8px}td,th{padding:8px;border-bottom:1px solid #d9e3ea;text-align:left;vertical-align:top}th{background:#eaf1f6}
+input{width:100%;padding:10px;border:1px solid #b9cbd8;border-radius:7px;font:inherit;margin:6px 0}button{border:0;border-radius:8px;background:#135b91;color:#fff;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer}
+code{word-break:break-all;font-size:.78rem}small,.m{color:#526b7c}
+</style></head><body>
+<header><img src="../../assets/logo-upa.png" alt="UPA Rocinha"><h1>Conferência de autenticidade de POP</h1></header>
+<main><div class="card"><form id="f"><label>Código do carimbo ou código do QR<input id="q" placeholder="Ex.: K7M2Q9XT4P" autocomplete="off"></label><button>Conferir</button></form></div><div id="out"></div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../../lib/upa-db.js"></script>
+<script>
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dh=i=>new Date(i).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+async function conferir(q){
+  const out=document.getElementById('out');out.innerHTML='<div class="card m">Conferindo…</div>';
+  try{
+    const r=await UPA.client().rpc('pop_verificar',{p_q:q});
+    if(r.error)throw r.error;const d=r.data;
+    if(!d||!d.encontrado){out.innerHTML='<div class="card res bad"><h2>Não encontrado</h2><p>Nenhuma assinatura registrada com este código. O documento pode não ser autêntico ou o código foi digitado errado.</p></div>';return}
+    const doc=d.documento;let cls='res',tit='Documento autêntico',msg='As assinaturas abaixo foram registradas no sistema da UPA Rocinha sobre este conteúdo.';
+    if(d.situacao==='obsoleto'||(d.versao_atual&&d.versao_atual>doc.versao)){cls='res warn';tit='Autêntico, mas NÃO é a versão vigente';msg='Existe revisão mais recente deste POP (ou esta foi substituída). Use sempre a versão vigente.'}
+    out.innerHTML=`<div class="card ${cls}"><h2>${tit}</h2><p>${msg}</p></div>
+    <div class="card"><b>${esc(doc.codigo)}</b> — ${esc(doc.titulo)}<br><small>Revisão ${String(doc.versao).padStart(2,'0')} · situação atual: ${esc(d.situacao)}</small>
+    <table><thead><tr><th>Papel</th><th>Assinado por</th><th>Quando</th></tr></thead><tbody>${d.assinaturas.map(a=>`<tr><td>${esc(a.papel)}</td><td><b>${esc(a.nome)}</b><br><small>${esc(a.cargo)}${a.matricula?' · mat. '+esc(a.matricula):''}</small></td><td>${esc(dh(a.assinado_em))}<br><small>cód. ${esc(a.codigo)}</small></td></tr>`).join('')}</tbody></table>
+    <p class="m" style="font-size:.8rem">SHA-256 do conteúdo assinado:<br><code>${esc(doc.hash)}</code><br>Compare com o código “Integridade” no cabeçalho do documento impresso (8 primeiros caracteres).</p></div>`;
+  }catch(e){out.innerHTML='<div class="card res bad"><h2>Erro na conferência</h2><p>'+esc((e&&e.message)||e)+'</p></div>'}
+}
+document.getElementById('f').addEventListener('submit',e=>{e.preventDefault();const v=document.getElementById('q').value.trim();if(v)conferir(v)});
+const c=new URLSearchParams(location.search).get('c');if(c){document.getElementById('q').value=c;conferir(c)}
+</script></body></html>

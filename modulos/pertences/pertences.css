@@ -1,0 +1,10 @@
+.cam{position:relative;background:#000;border-radius:10px;overflow:hidden;max-width:520px}.cam video{width:100%;display:block}
+.st{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:700;background:#e4edf6;color:#153b61}
+.st.g{background:#d9f2e5;color:#13663b}.st.s{background:#fff0d1;color:#845200}.st.a{background:#dbeafe;color:#123e70}.st.l{background:#e5e7eb;color:#374151}
+.big-n{font-size:1.9rem;font-weight:800;color:#10345d}
+.fotos{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.fotos img{height:90px;border-radius:8px;border:1px solid #c9d8e6}
+canvas.assin{border:2px dashed #1f5fa8;border-radius:10px;background:#fff;width:100%;max-width:520px;height:180px;touch-action:none;display:block}
+.lista-etq{display:grid;grid-template-columns:repeat(3,62mm);gap:0;font-size:0}
+.etq{width:62mm;height:36mm;border:.3mm dashed #777;padding:2mm;display:flex;gap:2mm;align-items:center;break-inside:avoid;font-size:8pt;overflow:hidden}
+.etq .q{width:27mm;height:27mm;flex:0 0 27mm}.etq .q svg{width:100%;height:100%;display:block}.etq .t{font-size:6.5pt;font-weight:bold;text-transform:uppercase;color:#333}.etq .n{font-size:15pt;font-weight:800;margin:1mm 0}.etq .u{font-size:6.5pt}
+.alerta-pend{background:#fff0d1;border:1px solid #e0b24a;border-radius:10px;padding:12px;margin:10px 0}

@@ -1,0 +1,219 @@
+<!doctype html><html lang="pt-BR" data-mod="almoxarifado"><head><meta charset="utf-8"><script src="../embed.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Almoxarifado | UPA Rocinha</title>
+<style>
+:root{--azul:#1f4e78;--azul2:#2e6da4;--fundo:#f3f6fa;--borda:#d9e1ea;--texto:#1d2733;--sub:#5b6b7c;--verm:#ffd6d6;--vermTx:#a40000;--verde:#e3f6e8;--verdeTx:#1d6b34;--amar:#fff4cc}
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--fundo);color:var(--texto);font-size:14px}
+header{background:var(--azul);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{font-size:19px;margin:0;flex:1}
+header .acoes{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;background:var(--azul2);color:#fff}
+.btn.sec{background:#fff;color:var(--azul);border:1px solid var(--borda)}
+.btn.perigo{background:#c0392b}
+.btn.peq{padding:5px 9px;font-size:12px}
+header .btn.sec{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)}
+nav{display:flex;gap:4px;padding:0 16px;background:#fff;border-bottom:1px solid var(--borda);overflow-x:auto}
+nav button{border:0;background:none;padding:13px 14px;font-size:14px;font-weight:600;color:var(--sub);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+nav button.on{color:var(--azul);border-bottom-color:var(--azul)}
+main{padding:18px;max-width:1400px;margin:0 auto}
+.card{background:#fff;border:1px solid var(--borda);border-radius:12px;padding:16px;margin-bottom:16px}
+.card h2{margin:0 0 4px;font-size:16px}
+.card p.d{margin:0 0 12px;color:var(--sub);font-size:13px}
+.linha{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--sub);font-weight:600}
+input,select{padding:8px 10px;border:1px solid var(--borda);border-radius:8px;font-size:13px;font-family:inherit}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--borda);border-radius:12px;padding:14px}
+.kpi .n{font-size:24px;font-weight:700}
+.kpi .l{font-size:12px;color:var(--sub)}
+.kpi.alerta .n{color:var(--vermTx)}
+.tw{overflow:auto;max-height:65vh;border:1px solid var(--borda);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:12.5px;background:#fff}
+th{position:sticky;top:0;background:#eef3f8;text-align:left;padding:8px;border-bottom:1px solid var(--borda);white-space:nowrap;z-index:1}
+td{padding:6px 8px;border-bottom:1px solid #eef1f4;vertical-align:top}
+td.n,th.n{text-align:right;white-space:nowrap}
+td.dif{background:var(--verm);color:var(--vermTx);font-weight:700}
+td.ok{background:var(--verde);color:var(--verdeTx);font-weight:600}
+td.mais{background:var(--amar);font-weight:600}
+td.neg{color:var(--vermTx);font-weight:700}
+.tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.tag.r{background:var(--verm);color:var(--vermTx)}.tag.g{background:var(--verde);color:var(--verdeTx)}.tag.y{background:var(--amar);color:#7a5c00}
+.vazio{padding:30px;text-align:center;color:var(--sub)}
+.legenda{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin:8px 0}
+.legenda span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px;background:var(--c)}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1d2733;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;display:none;z-index:99}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal .box{background:#fff;border-radius:12px;padding:20px;max-width:560px;width:100%;max-height:90vh;overflow:auto}
+.fotos{display:flex;gap:6px;flex-wrap:wrap}
+.fotos img{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--borda);cursor:pointer}
+.sec-t{display:none}.sec-t.on{display:block}
+@media print{header,nav,.np{display:none!important}.tw{max-height:none;overflow:visible;border:0}main{padding:0}.card{border:0}}
+
+html.embed header{display:none}
+.st{font-size:12px;opacity:.85;margin-right:6px}
+#carregando{position:fixed;inset:0;background:rgba(243,246,250,.85);display:none;align-items:center;justify-content:center;z-index:60;font-weight:600;color:var(--azul)}
+
+</style>
+</head>
+<body>
+</head>
+<body>
+<header>
+  <h1>📦 Almoxarifado – UPA Rocinha</h1>
+  <div class="acoes">
+    <span id="status" class="st">Conectando…</span>
+    <button class="btn sec" onclick="exportarBackup()">⬇ Backup</button>
+    <button class="btn sec" onclick="document.getElementById('inBackup').click()">⬆ Restaurar</button>
+    <input type="file" id="inBackup" accept=".json" hidden onchange="restaurarBackup(this)">
+  </div>
+</header>
+<nav id="abas">
+  <button data-t="painel" class="on">Painel</button>
+  <button data-t="pedidos">1. Pedidos</button>
+  <button data-t="receb">2. Recebido</button>
+  <button data-t="sigma">3. Movimentação SIGMA</button>
+  <button data-t="cruz">Pedido × Recebido</button>
+  <button data-t="estoque">Estoque</button>
+</nav>
+<main>
+
+<!-- PAINEL -->
+<section class="sec-t on" id="t-painel">
+  <div class="kpis" id="kpis"></div>
+  <div class="card">
+    <h2>Como usar</h2>
+    <p class="d">1) Importe os <b>pedidos aprovados</b> (planilha do twbsistemas). 2) Importe ou lance o <b>recebido</b> de cada entrega, com fotos das notas. 3) Importe a <b>movimentação do SIGMA</b>. O sistema cruza pedido × recebido (diferenças em vermelho claro para cobrar a OS) e calcula o <b>estoque</b> final.</p>
+  </div>
+  <div class="card" id="painelDif"></div>
+</section>
+
+<!-- PEDIDOS -->
+<section class="sec-t" id="t-pedidos">
+  <div class="card np">
+    <h2>Importar pedidos aprovados</h2>
+    <p class="d">Aceita .xlsx ou .csv. Colunas reconhecidas: Pedido, Mês/Ano, Data Pedido, Segmento, Insumo, Unidade, Qtd Aprovada. Reimportar o mesmo nº de pedido substitui o anterior.</p>
+    <div class="linha">
+      <input type="file" id="inPed" accept=".xlsx,.xls,.csv">
+      <button class="btn" onclick="importar('pedidos','inPed')">Importar</button>
+      <button class="btn sec" onclick="modelo('pedidos')">Baixar modelo</button>
+      <button class="btn perigo peq" onclick="limpar('pedidos')">Apagar pedidos</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="linha np" style="margin-bottom:10px">
+      <label class="f">Pedido<select id="fPedPed" onchange="render()"></select></label>
+      <label class="f">Buscar insumo<input id="fPedBusca" oninput="render()" placeholder="ex.: seringa"></label>
+    </div>
+    <div class="tw" id="tbPedidos"></div>
+  </div>
+</section>
+
+<!-- RECEBIDO -->
+<section class="sec-t" id="t-receb">
+  <div class="card np">
+    <h2>Importar recebido</h2>
+    <p class="d">Planilha com: Pedido (opcional), Data, Insumo, Qtd Recebida, Nota/Documento (opcional). Se a planilha não tiver a coluna Pedido, escolha abaixo a qual pedido ela pertence.</p>
+    <div class="linha">
+      <label class="f">Vincular ao pedido<select id="rcPedImp"></select></label>
+      <input type="file" id="inRec" accept=".xlsx,.xls,.csv">
+      <button class="btn" onclick="importar('receb','inRec')">Importar</button>
+      <button class="btn sec" onclick="modelo('receb')">Baixar modelo</button>
+      <button class="btn perigo peq" onclick="limpar('receb')">Apagar recebidos</button>
+    </div>
+  </div>
+  <div class="card np">
+    <h2>Lançar recebimento manual</h2>
+    <div class="linha">
+      <label class="f">Pedido<select id="rcPed" onchange="preencherInsumosRec()"></select></label>
+      <label class="f" style="flex:1;min-width:240px">Insumo<select id="rcIns"></select></label>
+      <label class="f">Qtd recebida<input type="number" id="rcQtd" min="0" style="width:110px"></label>
+      <label class="f">Data<input type="date" id="rcData"></label>
+      <label class="f">Nota/Doc<input id="rcDoc" style="width:120px"></label>
+      <label class="f">Foto(s)<input type="file" id="rcFoto" accept="image/*" capture="environment" multiple></label>
+      <button class="btn" onclick="lancarRec()">Lançar</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="linha np" style="margin-bottom:10px">
+      <label class="f">Pedido<select id="fRecPed" onchange="render()"></select></label>
+      <label class="f">Buscar insumo<input id="fRecBusca" oninput="render()"></label>
+    </div>
+    <div class="tw" id="tbReceb"></div>
+  </div>
+</section>
+
+<!-- SIGMA -->
+<section class="sec-t" id="t-sigma">
+  <div class="card np">
+    <h2>Importar movimentação do SIGMA</h2>
+    <p class="d">Colunas reconhecidas: Data, Insumo/Material, Tipo (Entrada/Saída) e Quantidade — ou colunas separadas "Entrada" e "Saída". Setor/Destino é opcional. Reimportar um arquivo com o mesmo nome substitui o anterior.</p>
+    <div class="linha">
+      <input type="file" id="inSig" accept=".xlsx,.xls,.csv">
+      <button class="btn" onclick="importar('sigma','inSig')">Importar</button>
+      <button class="btn sec" onclick="modelo('sigma')">Baixar modelo</button>
+      <button class="btn perigo peq" onclick="limpar('sigma')">Apagar SIGMA</button>
+    </div>
+  </div>
+  <div class="card np">
+    <h2>Saldo inicial (inventário)</h2>
+    <p class="d">Opcional. Planilha com Insumo e Quantidade contada na data de corte. Entra como ponto de partida do estoque.</p>
+    <div class="linha">
+      <label class="f">Data do inventário<input type="date" id="invData"></label>
+      <input type="file" id="inInv" accept=".xlsx,.xls,.csv">
+      <button class="btn" onclick="importar('inv','inInv')">Importar inventário</button>
+      <button class="btn sec" onclick="modelo('inv')">Baixar modelo</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="linha np" style="margin-bottom:10px">
+      <label class="f">Tipo<select id="fSigTipo" onchange="render()"><option value="">Todos</option><option>ENTRADA</option><option>SAÍDA</option></select></label>
+      <label class="f">Buscar insumo<input id="fSigBusca" oninput="render()"></label>
+    </div>
+    <div class="tw" id="tbSigma"></div>
+  </div>
+</section>
+
+<!-- CRUZAMENTO -->
+<section class="sec-t" id="t-cruz">
+  <div class="card">
+    <h2>Pedido aprovado × Recebido</h2>
+    <p class="d">Diferença = Aprovado − Recebido. Em vermelho claro: faltou entregar (cobrar a OS).</p>
+    <div class="linha np" style="margin-bottom:6px">
+      <label class="f">Pedido<select id="fCzPed" onchange="render()"></select></label>
+      <label class="f">Mostrar<select id="fCzMostra" onchange="render()"><option value="dif">Só com diferença</option><option value="">Todos</option></select></label>
+      <label class="f">Buscar insumo<input id="fCzBusca" oninput="render()"></label>
+      <button class="btn" onclick="exportarCruz()">⬇ Excel para cobrança</button>
+      <button class="btn sec" onclick="window.print()">🖨 Imprimir</button>
+    </div>
+    <div class="legenda"><span style="--c:var(--verm)">Faltou receber</span><span style="--c:var(--verde)">Recebido completo</span><span style="--c:var(--amar)">Recebido a mais</span></div>
+    <div class="tw" id="tbCruz"></div>
+  </div>
+</section>
+
+<!-- ESTOQUE -->
+<section class="sec-t" id="t-estoque">
+  <div class="card">
+    <h2>Estoque calculado</h2>
+    <p class="d">Estoque = Saldo inicial + Recebido (OS) − Saídas SIGMA. A coluna "Entradas SIGMA" serve para conferir se o que chegou foi lançado no SIGMA. <span id="notaCorte"></span></p>
+    <div class="linha np" style="margin-bottom:10px">
+      <label class="f">Segmento<select id="fEstSeg" onchange="render()"></select></label>
+      <label class="f">Buscar insumo<input id="fEstBusca" oninput="render()"></label>
+      <button class="btn" onclick="exportarEstoque()">⬇ Excel</button>
+    </div>
+    <div class="tw" id="tbEstoque"></div>
+  </div>
+  <div class="card" id="cardVinc"></div>
+</section>
+</main>
+
+<div class="modal" id="modalFoto" onclick="this.style.display='none'"><div class="box" style="max-width:900px"><img id="imgFoto" style="width:100%"></div></div>
+<div id="toast"></div>
+
+<div id="carregando">Salvando no banco…</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="../../lib/upa-db.js"></script>
+<script src="almoxarifado.js"></script>
+</body></html>
