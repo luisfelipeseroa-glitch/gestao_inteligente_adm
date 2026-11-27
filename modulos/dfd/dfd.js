@@ -9,6 +9,7 @@ const fd = d => { if (!d) return ''; const p = String(d).slice(0, 10).split('-')
 const semAc = t => String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
 const C_DOCS = 'dfd_docs', C_ATC = 'atestos_cfg';
+const semAssinatura = txt => (((UPA.user() || {}).app_metadata || {}).perfil === 'coordenacao' ? 'Neste login você consulta os DFDs. Só o administrador assina.' : txt);
 const CFG0 = { nome: 'Luis Felipe W. Seroa da Motta', cargo: 'Coordenador Administrativo', unidade: 'UPA 24h Rocinha', cnes: '6507409' };
 let view = 'novo', CFG = { ...CFG0 }, SIGURL = '', DOCS = [], sigImg = null, prevUrl = '', prevRel = 0.4;
 let origBytes = null, origWord = false, wordHint = null, pdfBytes = null, pdfName = '', pdfDoc = null, hashOrig = '', marks = [], sigW = 0.28, titulo = '', dataDoc = '';
@@ -91,7 +92,7 @@ async function abrirPdf(file) {
 }
 const pdfPages = n => document.querySelector(`.pg[data-n="${n}"]`);
 function colocar(w, ev) {
-  if (!sigImg) { notice('Cadastre a imagem da assinatura em Atestos > Assinatura antes.', true); return; }
+  if (!sigImg) { notice(semAssinatura('Cadastre a imagem da assinatura em Atestos > Assinatura antes.'), true); return; }
   const r = w.getBoundingClientRect(), bw = sigW, bh = bw * prevRel * (r.width / r.height);
   const m = { id: uuid(), n: +w.dataset.n, fx: Math.max(0, Math.min(1 - bw, (ev.clientX - r.left) / r.width - bw / 2)), fy: Math.max(0, Math.min(1 - bh, (ev.clientY - r.top) / r.height - bh / 2)), el: null };
   marks.push(m); desenharMarca(w, m); atualizarMarcas();
@@ -123,7 +124,7 @@ async function gerarAssinado(img) {
 async function salvar(e) {
   e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
   if (!pdfBytes) { notice('Importe o DFD (PDF ou Word) primeiro.', true); return; } if (!marks.length) { notice('Posicione a assinatura (clique na página).', true); return; }
-  if (!sigImg) { notice('Cadastre a imagem da assinatura em Atestos > Assinatura.', true); return; } if (!f.objeto.trim()) { notice('Informe o objeto do DFD.', true); return; }
+  if (!sigImg) { notice(semAssinatura('Cadastre a imagem da assinatura em Atestos > Assinatura.'), true); return; } if (!f.objeto.trim()) { notice('Informe o objeto do DFD.', true); return; }
   const btn = $('btnSalvar'); btn.disabled = true;
   try {
     notice('Gerando PDF assinado…'); const id = uuid(), agora = new Date(), codigo = cod(hashOrig), car = comCarimbo();
@@ -142,7 +143,7 @@ async function salvar(e) {
 /* ---------- views ---------- */
 function viewNovo() {
   $('content').innerHTML = `<section class="view"><h2>Novo DFD</h2>
-  ${!sigImg ? '<div class="alert warn"><b>⚠</b><span>Cadastre antes a imagem da sua assinatura em <b>Atestos &gt; Assinatura</b> (a mesma é usada aqui).</span></div>' : ''}
+  ${!sigImg ? '<div class="alert warn"><b>⚠</b><span>' + semAssinatura('Cadastre antes a imagem da sua assinatura em <b>Atestos &gt; Assinatura</b> (a mesma é usada aqui).') + '</span></div>' : ''}
   <form id="nf"><h3>1. Importar o DFD preenchido (PDF ou Word)</h3><label class="fld">Arquivo PDF ou Word (.docx)<input type="file" id="pdfIn" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></label><p class="muted">PDF mantém o documento exatamente como está. No Word (.docx), o sistema converte para PDF no navegador — o visual é aproximado, então confira antes de assinar (para fidelidade total, use no Word “Salvar como PDF”).</p>
   <div id="passo2" class="hidden"><h3>2. Conferir a assinatura</h3><p class="muted">A assinatura é posicionada sozinha acima da linha “Matr.” no fim do documento. Arraste para ajustar, ou clique em outro ponto para incluir mais uma.</p>
   <div class="grid"><label class="fld">Tamanho da assinatura<input type="range" id="sigW" min="12" max="55" value="${Math.round(sigW * 100)}"></label>

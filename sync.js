@@ -44,11 +44,13 @@
         var c = canon(r);
         if (known.get(r.id) !== c) { await UPA.db.put(COL, r.id, r); known.set(r.id, c); }
       }
-      var ids = new Set(reports.map(function (r) { return r.id; }));
+      var ids = new Set(reports.map(function (r) { return r.id; })), negado = false;
       for (var id of Array.from(known.keys())) {
-        if (!ids.has(id)) { await UPA.db.del(id); known.delete(id); }
+        if (ids.has(id)) continue;
+        try { await UPA.db.del(id); } catch (e) { if (!e || e.code !== '42501') throw e; negado = true; }
+        known.delete(id);
       }
-      state('Salvo no banco · ' + hhmm());
+      state(negado ? 'Salvo. Somente o administrador pode apagar relatórios.' : 'Salvo no banco · ' + hhmm());
     } catch (e) {
       state('Erro ao salvar no banco: ' + UPA.msg(e) + ' (cópia mantida neste navegador)');
     } finally {

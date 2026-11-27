@@ -4,6 +4,7 @@
    (app_metadata) e nao pode ser alterado pelo proprio usuario. */
 (function () {
   var PERFIS = {
+    coordenacao: ['home', 'dashboard', 'mod-central', 'documents', 'mod-fluxo', 'mod-pgrss', 'mod-pop', 'mod-rhdp', 'mod-subhue', 'mod-dfd', 'mod-treinamentos', 'mod-pertences', 'mod-epi', 'mod-escalas', 'help'],
     rotina_enf: ['home', 'mod-central', 'calendar', 'documents', 'mod-fluxo', 'mod-pop', 'mod-dfd', 'mod-treinamentos', 'mod-pertences', 'mod-epi', 'mod-escalas', 'help'],
     almox_externo: ['home', 'mod-central', 'calendar', 'documents', 'mod-almoxarifado', 'mod-epi', 'help'],
     enfermagem: ['home', 'dashboard', 'mod-pop', 'mod-central', 'mod-rhdp', 'mod-subhue', 'mod-treinamentos', 'mod-pertences', 'help']
